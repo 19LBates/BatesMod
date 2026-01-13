@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "bates",
+  "version": "${version}",
+  "name": "BatesMod",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/bates/icon.png",
+  "environment": "server",
+  "entrypoints": {
+    "fabric-datagen": [
+    ],
+    "main": [
+      "me.bates.batesmod.BatesMod"
+    ]
+  },
+  "mixins": [
+    "batesmod.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}

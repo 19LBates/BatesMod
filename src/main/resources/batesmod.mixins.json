@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "me.bates.batesmod.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "EatGrassGoalMixin",
+    "MobEntityMixin",
+    "PlayerManagerMixin",
+    "ServerPlayNetworkManagerMixin",
+    "SeverWorldMixin"
+  ]
+}
