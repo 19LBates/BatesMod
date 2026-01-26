@@ -16,7 +16,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(targets = "net.minecraft.entity.mob.EndermanEntity$PickUpBlockGoal")
 public abstract class PickUpBlockGoalMixin extends Goal {
 
-
     @Final
     @Shadow
     private EndermanEntity enderman;
