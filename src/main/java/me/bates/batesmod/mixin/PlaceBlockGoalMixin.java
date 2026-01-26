@@ -20,11 +20,9 @@ public abstract class PlaceBlockGoalMixin extends Goal {
     @Shadow
     private EndermanEntity enderman;
 
-    @Unique
-    private final ServerWorld sw = getServerWorld(enderman);
-
     @Inject(method = "canStart", at = @At("HEAD"), cancellable = true)
     private void bates$changeCanStart(CallbackInfoReturnable<Boolean> cir) {
+        ServerWorld sw = getServerWorld(enderman);
         if (!(Boolean) sw.getGameRules().getValue(GameRules.DO_MOB_GRIEFING)
                 || !(Boolean) sw.getGameRules().getValue(ModGameRules.ENDERMAN_GRIEFING)) {
             cir.setReturnValue(false);

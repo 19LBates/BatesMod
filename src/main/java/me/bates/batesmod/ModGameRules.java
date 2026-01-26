@@ -13,6 +13,9 @@ public class ModGameRules {
     public static final GameRule<Boolean> SHEEP_GRIEFING = registerRule("sheep_griefing");
     public static final GameRule<Boolean> WITHER_GRIEFING = registerRule("wither_griefing");
     public static final GameRule<Boolean> ZOMBIE_GRIEFING = registerRule("zombie_griefing");
+    public static final GameRule<Boolean> PICKUP_ITEMS = registerRule("mobs_pickup_items");
+
+
 
     public static GameRule<Boolean> registerRule(String name) {
         return GameRuleBuilder.forBoolean(true).category(GameRuleCategory.MOBS).buildAndRegister(Identifier.of(BatesMod.MOD_ID, name));
