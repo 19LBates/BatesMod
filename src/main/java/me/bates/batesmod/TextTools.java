@@ -8,7 +8,8 @@ import java.util.Deque;
 
 public class TextTools {
 
-    private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated, String[] colors) {
+    private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated,
+                         String[] colors) {
     }
 
     private static Style copy(Style s) {
@@ -41,40 +42,28 @@ public class TextTools {
                     Style next = copy(current);
                     next = new Style(next.bold, next.italic, next.underline, next.strikethrough, next.obfuscated, new String[]{tag.substring(6)});
                     stack.push(next);
-                }
-
-                else if (tag.startsWith("gradient:")) {
+                } else if (tag.startsWith("gradient:")) {
                     Style next = copy(current);
                     String[] colors = tag.substring(9).split(":");
                     next = new Style(next.bold, next.italic, next.underline, next.strikethrough, next.obfuscated, colors);
                     stack.push(next);
-                }
-
-                else if (tag.equals("bold")) {
+                } else if (tag.equals("bold")) {
                     Style next = copy(current);
                     next = new Style(true, next.italic, next.underline, next.strikethrough, next.obfuscated, next.colors);
                     stack.push(next);
-                }
-
-                else if (tag.equals("italic")) {
+                } else if (tag.equals("italic")) {
                     Style next = copy(current);
                     next = new Style(next.bold, true, next.underline, next.strikethrough, next.obfuscated, next.colors);
                     stack.push(next);
-                }
-
-                else if (tag.equals("underline")) {
+                } else if (tag.equals("underline")) {
                     Style next = copy(current);
                     next = new Style(next.bold, next.italic, true, next.strikethrough, next.obfuscated, next.colors);
                     stack.push(next);
-                }
-
-                else if (tag.equals("strikethrough")) {
+                } else if (tag.equals("strikethrough")) {
                     Style next = copy(current);
                     next = new Style(next.bold, next.italic, next.underline, true, next.obfuscated, next.colors);
                     stack.push(next);
-                }
-
-                else if (tag.equals("obfuscated")) {
+                } else if (tag.equals("obfuscated")) {
                     Style next = copy(current);
                     next = new Style(next.bold, next.italic, next.underline, next.strikethrough, true, next.colors);
                     stack.push(next);
@@ -110,7 +99,7 @@ public class TextTools {
         Style style = stack.peek();
         MutableText output;
 
-        if (style.colors== null) {
+        if (style.colors == null) {
             output = Text.literal(text);
         } else if (style.colors.length == 1) {
             output = colorText(text, style.colors[0]);

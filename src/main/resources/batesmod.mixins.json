@@ -3,8 +3,11 @@
   "package": "me.bates.batesmod.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "BreakDoorGoalMixin",
+    "DoorInteractGoalAccessor",
     "EatGrassGoalMixin",
-    "MobEntityMixin",
+    "PickUpBlockGoalMixin",
+    "PlaceBlockGoalMixin",
     "PlayerManagerMixin",
     "ServerPlayNetworkManagerMixin",
     "SeverWorldMixin"
