@@ -4,14 +4,15 @@
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "BreakDoorGoalMixin",
-    "StepAndDestroyBlockGoalMixin",
     "DoorInteractGoalAccessor",
     "EatGrassGoalMixin",
+    "LivingEntityMixin",
     "MobEntityMixin",
     "PickUpBlockGoalMixin",
     "PlaceBlockGoalMixin",
     "PlayerManagerMixin",
     "ServerPlayNetworkManagerMixin",
-    "SeverWorldMixin"
+    "SeverWorldMixin",
+    "StepAndDestroyBlockGoalMixin"
   ]
 }

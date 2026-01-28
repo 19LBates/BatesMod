@@ -10,19 +10,16 @@ public class BatesCommand {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(literal("bates")
                 .requires(requirePermissionLevel(ADMINS_CHECK))
-                .executes(context -> {
-                    return execute(context.getSource());
-                })
+                .executes(context -> execute(context.getSource()))
                 .then(
                         literal("reload")
-                                .executes(context -> {
-                                    return executeReload(context.getSource());
-                                }))
+                                .executes(context -> executeReload(context.getSource()))
+                )
                 .then(
                         literal("version")
-                                .executes(context -> {
-                                    return executeVersion(context.getSource());
-                                })));
+                                .executes(context -> executeVersion(context.getSource()))
+                )
+        );
     }
 
     public static int execute(ServerCommandSource source) {
