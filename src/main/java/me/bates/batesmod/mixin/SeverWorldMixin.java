@@ -3,11 +3,8 @@ package me.bates.batesmod.mixin;
 import me.bates.batesmod.ModGameRules;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.boss.WitherEntity;
 import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.mob.CreeperEntity;
 import net.minecraft.entity.projectile.FireballEntity;
-import net.minecraft.entity.projectile.WitherSkullEntity;
 import net.minecraft.particle.BlockParticleEffect;
 import net.minecraft.particle.ParticleEffect;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -34,7 +31,7 @@ import java.util.Map;
 public abstract class SeverWorldMixin {
 
     @Unique
-    private final Map<EntityType<?>, GameRule<?>> gameRuleMap = Map.of(
+    private static final Map<EntityType<?>, GameRule<?>> gameRuleMap = Map.of(
             EntityType.CREEPER, ModGameRules.CREEPER_GRIEFING,
             EntityType.GHAST, ModGameRules.GHAST_GRIEFING,
             EntityType.WITHER, ModGameRules.WITHER_GRIEFING,

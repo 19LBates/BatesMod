@@ -5,11 +5,11 @@ import net.minecraft.text.Text;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Objects;
 
 public class TextTools {
 
-    private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated,
-                         String[] colors) {
+    private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated, String[] colors) {
     }
 
     private static Style copy(Style s) {
@@ -39,32 +39,32 @@ public class TextTools {
 
                 //Open tags
                 if (tag.startsWith("color:")) {
-                    Style next = copy(current);
+                    Style next = copy(Objects.requireNonNull(current));
                     next = new Style(next.bold, next.italic, next.underline, next.strikethrough, next.obfuscated, new String[]{tag.substring(6)});
                     stack.push(next);
                 } else if (tag.startsWith("gradient:")) {
-                    Style next = copy(current);
+                    Style next = copy(Objects.requireNonNull(current));
                     String[] colors = tag.substring(9).split(":");
                     next = new Style(next.bold, next.italic, next.underline, next.strikethrough, next.obfuscated, colors);
                     stack.push(next);
                 } else if (tag.equals("bold")) {
-                    Style next = copy(current);
+                    Style next = copy(Objects.requireNonNull(current));
                     next = new Style(true, next.italic, next.underline, next.strikethrough, next.obfuscated, next.colors);
                     stack.push(next);
                 } else if (tag.equals("italic")) {
-                    Style next = copy(current);
+                    Style next = copy(Objects.requireNonNull(current));
                     next = new Style(next.bold, true, next.underline, next.strikethrough, next.obfuscated, next.colors);
                     stack.push(next);
                 } else if (tag.equals("underline")) {
-                    Style next = copy(current);
+                    Style next = copy(Objects.requireNonNull(current));
                     next = new Style(next.bold, next.italic, true, next.strikethrough, next.obfuscated, next.colors);
                     stack.push(next);
                 } else if (tag.equals("strikethrough")) {
-                    Style next = copy(current);
+                    Style next = copy(Objects.requireNonNull(current));
                     next = new Style(next.bold, next.italic, next.underline, true, next.obfuscated, next.colors);
                     stack.push(next);
                 } else if (tag.equals("obfuscated")) {
-                    Style next = copy(current);
+                    Style next = copy(Objects.requireNonNull(current));
                     next = new Style(next.bold, next.italic, next.underline, next.strikethrough, true, next.colors);
                     stack.push(next);
                 }
