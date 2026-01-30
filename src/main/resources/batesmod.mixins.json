@@ -6,6 +6,7 @@
     "BreakDoorGoalMixin",
     "DoorInteractGoalAccessor",
     "EatGrassGoalMixin",
+    "FarmlandBlockMixin",
     "LivingEntityMixin",
     "MobEntityMixin",
     "PickUpBlockGoalMixin",
