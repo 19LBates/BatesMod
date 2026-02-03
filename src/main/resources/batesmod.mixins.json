@@ -5,6 +5,7 @@
   "mixins": [
     "BreakDoorGoalMixin",
     "DoorInteractGoalAccessor",
+    "EatCarrotCropGoalMixin",
     "EatGrassGoalMixin",
     "FarmlandBlockMixin",
     "LivingEntityMixin",
