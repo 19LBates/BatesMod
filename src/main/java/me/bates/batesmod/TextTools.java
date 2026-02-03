@@ -10,10 +10,34 @@ import java.util.Objects;
 public class TextTools {
 
     private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated, String[] colors) {
-    }
+        public Style withBold(boolean v) {
+            return new Style(v, italic, underline, strikethrough, obfuscated, cloneColors());
+        }
 
-    private static Style copy(Style s) {
-        return new Style(s.bold, s.italic, s.underline, s.strikethrough, s.obfuscated, s.colors);
+        public Style withItalic(boolean v) {
+            return new Style(bold, v, underline, strikethrough, obfuscated, cloneColors());
+        }
+
+        public Style withUnderline(boolean v) {
+            return new Style(bold, italic, v, strikethrough, obfuscated, cloneColors());
+        }
+
+        public Style withStrikethrough(boolean v) {
+            return new Style(bold, italic, underline, v, obfuscated, cloneColors());
+        }
+
+        public Style withObfuscated(boolean v) {
+            return new Style(bold, italic, underline, strikethrough, v, cloneColors());
+        }
+
+        public Style withColors(String[] c) {
+            String[] newColors = c == null ? null : c.clone();
+            return new Style(bold, italic, underline, strikethrough, obfuscated, newColors);
+        }
+
+        public String[] cloneColors() {
+            return colors == null ? null : colors.clone();
+        }
     }
 
     public static MutableText deserialize(String s, String[] placeholders, String[] replacements) {
@@ -39,34 +63,19 @@ public class TextTools {
 
                 //Open tags
                 if (tag.startsWith("color:")) {
-                    Style next = copy(Objects.requireNonNull(current));
-                    next = new Style(next.bold, next.italic, next.underline, next.strikethrough, next.obfuscated, new String[]{tag.substring(6)});
-                    stack.push(next);
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{tag.substring(6)}));
                 } else if (tag.startsWith("gradient:")) {
-                    Style next = copy(Objects.requireNonNull(current));
-                    String[] colors = tag.substring(9).split(":");
-                    next = new Style(next.bold, next.italic, next.underline, next.strikethrough, next.obfuscated, colors);
-                    stack.push(next);
+                    stack.push(Objects.requireNonNull(current).withColors(tag.substring(9).split(":")));
                 } else if (tag.equals("bold")) {
-                    Style next = copy(Objects.requireNonNull(current));
-                    next = new Style(true, next.italic, next.underline, next.strikethrough, next.obfuscated, next.colors);
-                    stack.push(next);
+                    stack.push(Objects.requireNonNull(current).withBold(true));
                 } else if (tag.equals("italic")) {
-                    Style next = copy(Objects.requireNonNull(current));
-                    next = new Style(next.bold, true, next.underline, next.strikethrough, next.obfuscated, next.colors);
-                    stack.push(next);
+                    stack.push(Objects.requireNonNull(current).withItalic(true));
                 } else if (tag.equals("underline")) {
-                    Style next = copy(Objects.requireNonNull(current));
-                    next = new Style(next.bold, next.italic, true, next.strikethrough, next.obfuscated, next.colors);
-                    stack.push(next);
+                    stack.push(Objects.requireNonNull(current).withUnderline(true));
                 } else if (tag.equals("strikethrough")) {
-                    Style next = copy(Objects.requireNonNull(current));
-                    next = new Style(next.bold, next.italic, next.underline, true, next.obfuscated, next.colors);
-                    stack.push(next);
+                    stack.push(Objects.requireNonNull(current).withStrikethrough(true));
                 } else if (tag.equals("obfuscated")) {
-                    Style next = copy(Objects.requireNonNull(current));
-                    next = new Style(next.bold, next.italic, next.underline, next.strikethrough, true, next.colors);
-                    stack.push(next);
+                    stack.push(Objects.requireNonNull(current).withObfuscated(true));
                 }
 
                 //Close tags
@@ -125,6 +134,7 @@ public class TextTools {
             throw new IllegalArgumentException("Too few colors! At least 2 colors needed.");
         }
 
+        colors = colors.clone();
         for (int i = 0; i < colors.length; i++) {
             colors[i] = format(colors[i]);
         }
@@ -152,11 +162,9 @@ public class TextTools {
             int g = lerp(rgbColors[segIndex][1], rgbColors[segIndex + 1][1], localT);
             int b = lerp(rgbColors[segIndex][2], rgbColors[segIndex + 1][2], localT);
 
-            String curColor = String.format("%02x%02x%02x", r, g, b);
-
-            output = output.copy().append(colorText(text.substring(i, i + 1), curColor));
+            int colorInt = (r << 16) | (g << 8) | b;
+            output.append(Text.literal(String.valueOf(text.charAt(i))).styled(style -> style.withColor(colorInt)));
         }
-
 
         return output;
     }
