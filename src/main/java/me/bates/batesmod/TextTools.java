@@ -35,7 +35,7 @@ public class TextTools {
             return new Style(bold, italic, underline, strikethrough, obfuscated, newColors);
         }
 
-        public String[] cloneColors() {
+        private String[] cloneColors() {
             return colors == null ? null : colors.clone();
         }
     }

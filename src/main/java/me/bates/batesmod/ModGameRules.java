@@ -18,15 +18,6 @@ public class ModGameRules {
 
     private static final Map<EntityType<?>, GameRule<Boolean>> GAME_RULE_MAP = new HashMap<>();
 
-    static {
-        for (EntityType<?> type: Registries.ENTITY_TYPE) {
-            if (type.getSpawnGroup() == SpawnGroup.MISC) continue; //Only for mobs
-            Identifier id = Registries.ENTITY_TYPE.getId(type);
-            GameRule<Boolean> rule = registerRule(id.getPath() + "_griefing");
-            GAME_RULE_MAP.put(type, rule);
-        }
-    }
-
     public static GameRule<Boolean> registerRule(String name) {
         return GameRuleBuilder.forBoolean(true).category(GameRuleCategory.MOBS).buildAndRegister(Identifier.of(BatesMod.MOD_ID, name));
     }
@@ -43,6 +34,12 @@ public class ModGameRules {
     }
 
     public static void init() {
+        for (EntityType<?> type: Registries.ENTITY_TYPE) {
+            if (type.getSpawnGroup() == SpawnGroup.MISC) continue; //Only for mobs
+            Identifier id = Registries.ENTITY_TYPE.getId(type);
+            GameRule<Boolean> rule = registerRule(id.getPath() + "_griefing");
+            GAME_RULE_MAP.put(type, rule);
+        }
     }
 
 }
