@@ -32,6 +32,7 @@ public class BatesMod implements ModInitializer {
     private static void registerCommands() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             BatesCommand.register(dispatcher);
+            GriefCommand.register(dispatcher);
             SkibCommand.register(dispatcher);
         });
     }
