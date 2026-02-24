@@ -14,6 +14,9 @@
     ],
     "main": [
       "me.bates.batesmod.BatesMod"
+    ],
+    "preLaunch": [
+      "me.bates.batesmod.BatesPreLaunch"
     ]
   },
   "mixins": [
