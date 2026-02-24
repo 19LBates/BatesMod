@@ -5,6 +5,8 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.filter.AbstractFilter;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+
 public class LogFilter extends AbstractFilter implements Filter {
     public Result filter(@NotNull LogEvent event) {
         return shouldFilter("[" + event.getLoggerName() + "]: " +
@@ -13,8 +15,8 @@ public class LogFilter extends AbstractFilter implements Filter {
     }
 
     public boolean shouldFilter(String s) {
-        String[] phrases = ConfigManager.get().phrases;
-        String[] regexes = ConfigManager.get().regexes;
+        List<String> phrases = ConfigManager.get().phrases;
+        List<String> regexes = ConfigManager.get().regexes;
         if (s == null) return false;
 
         if (phrases != null) {
