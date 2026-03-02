@@ -9,14 +9,24 @@ import java.util.List;
 
 public class LogFilter extends AbstractFilter implements Filter {
     public Result filter(@NotNull LogEvent event) {
-        return shouldFilter("[" + event.getLoggerName() + "]: " +
-                event.getMessage().getFormattedMessage())
-                ? Result.DENY : Result.NEUTRAL;
+        if (shouldBlockEvent(event))
+            return Result.DENY;
+
+        if (shouldFilter("[" + event.getLoggerName() + "]: " +
+                event.getMessage().getFormattedMessage()))
+            return Result.DENY;
+
+        return Result.NEUTRAL;
     }
 
-    public boolean shouldFilter(String s) {
-        List<String> phrases = ConfigManager.get().phrases;
-        List<String> regexes = ConfigManager.get().regexes;
+    private boolean shouldBlockEvent(LogEvent event) {
+        List<String> events = ConfigManager.get().filterLoggers;
+        return events.contains(event.getLoggerName());
+    }
+
+    private boolean shouldFilter(String s) {
+        List<String> phrases = ConfigManager.get().filterPhrases;
+        List<String> regexes = ConfigManager.get().filterRegexes;
         if (s == null) return false;
 
         if (phrases != null) {
