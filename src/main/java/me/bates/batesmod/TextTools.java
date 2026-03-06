@@ -53,6 +53,15 @@ public class TextTools {
 
         for (int i = 0; i < s.length(); ) {
             char c = s.charAt(i);
+            if (c == '\\') {
+                i++;
+                if (i >= s.length()) {
+                    throw new IllegalArgumentException("Trailing Backslash!");
+                }
+                buffer.append(s.charAt(i));
+                i++;
+                continue;
+            }
             if (c == '<') {
                 flush(stack, buffer, result);
                 int end = s.indexOf('>', i + 1);

@@ -24,6 +24,7 @@ public class BatesMod implements ModInitializer {
         ConfigManager.load();
         org.apache.logging.log4j.core.Logger root = (org.apache.logging.log4j.core.Logger) LogManager.getRootLogger();
         root.addFilter(BatesMod.LOG_FILTER);
+        ChatMessageEvent.register();
     }
 
     public static String getModVersion(String modId) {
