@@ -5,8 +5,10 @@ import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.IOException;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 public class ConfigManager {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
@@ -21,7 +23,10 @@ public class ConfigManager {
                 return;
             }
 
+            ModConfig defaults = new ModConfig();
             config = GSON.fromJson(Files.readString(CONFIG_PATH), ModConfig.class);
+            merge(config, defaults);
+            save();
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to load config:", e);
@@ -30,7 +35,10 @@ public class ConfigManager {
 
     public static void save() {
         try {
-            Files.writeString(CONFIG_PATH, GSON.toJson(config));
+            Path temp = CONFIG_PATH.resolveSibling("config.json.tmp");
+            Files.writeString(temp, GSON.toJson(config));
+            Files.move(temp, CONFIG_PATH, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+
         } catch (IOException e) {
             throw new RuntimeException("Failed to save config:", e);
         }
@@ -41,5 +49,18 @@ public class ConfigManager {
             throw new IllegalStateException("Config not loaded!");
         }
         return config;
+    }
+
+    private static void merge (ModConfig base, ModConfig overlay) {
+        try {
+            for (var field : ModConfig.class.getFields()) {
+                Object value = field.get(overlay);
+                if (field.get(base) == null && value != null) {
+                    field.set(base, value);
+                }
+            }
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Failed to migrate config:", e);
+        }
     }
 }
