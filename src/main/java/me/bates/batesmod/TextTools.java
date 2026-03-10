@@ -41,7 +41,11 @@ public class TextTools {
     }
 
     public static MutableText deserialize(String s, String[] placeholders, String[] replacements) {
-        return deserialize(applyPlaceholders(s, placeholders, replacements));
+        return deserialize(applyPlaceholders(s, placeholders, replacements, false));
+    }
+
+    public static MutableText deserialize(String s, String[] placeholders, String[] replacements, String[] literalPlaceholders, String[] literalReplacements) {
+        return deserialize(applyPlaceholders(s, literalPlaceholders, literalReplacements, true), placeholders, replacements);
     }
 
     public static MutableText deserialize(String s) {
@@ -203,15 +207,21 @@ public class TextTools {
         return s.toLowerCase();
     }
 
-    private static String applyPlaceholders(String s, String[] placeholders, String[] replacements) {
+    private static String applyPlaceholders(String s, String[] placeholders, String[] replacements, boolean literal) {
+        String out = s;
+
         if (placeholders.length != replacements.length) {
             throw new IllegalArgumentException("Placeholders and replacement arrays don't match!");
         }
 
         for (int i = 0; i < placeholders.length; i++) {
-            s = s.replace("%" + placeholders[i] + "%", replacements[i]);
+            String placeholder = placeholders[i];
+            if (literal) {
+                placeholder = placeholder.replace("<", "\\<").replace(">", "\\>");
+            }
+            out = out.replace("%" + placeholder + "%", replacements[i]);
         }
 
-        return s;
+        return out;
     }
 }
