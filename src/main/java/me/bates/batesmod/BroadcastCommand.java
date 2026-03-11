@@ -7,14 +7,14 @@ import net.minecraft.server.command.ServerCommandSource;
 
 import static net.minecraft.server.command.CommandManager.*;
 
-public class FormatCommand {
+public class BroadcastCommand {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
-        dispatcher.register(literal("format")
+        dispatcher.register(literal("broadcast")
                 .requires(requirePermissionLevel(ADMINS_CHECK))
-                .executes(FormatCommand::noArg)
+                .executes(BroadcastCommand::noArg)
                 .then(
                         argument("value", StringArgumentType.string())
-                                .executes(FormatCommand::execute)
+                                .executes(BroadcastCommand::execute)
                 )
         );
     }
