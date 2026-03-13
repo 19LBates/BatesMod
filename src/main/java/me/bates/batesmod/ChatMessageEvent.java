@@ -10,8 +10,8 @@ public class ChatMessageEvent {
                     String content = message.getContent().getString();
                     for (ServerPlayerEntity player : sender.getEntityWorld().getPlayers()) {
                         player.sendMessage(TextTools.deserialize((ConfigManager.get().chatMessageFormat),
-                                        new String[]{"name", "message"},
-                                        new String[]{name, content}
+                                        new String[]{"name", "message", "display-name"},
+                                        new String[]{name, content, ConfigManager.get().displayNames.getOrDefault(name, name)}
                                 )
                         );
                     }

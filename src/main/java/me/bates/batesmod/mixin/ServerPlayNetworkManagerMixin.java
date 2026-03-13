@@ -17,10 +17,11 @@ public abstract class ServerPlayNetworkManagerMixin {
 
     @ModifyArg(method = "cleanUp", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/PlayerManager;broadcast(Lnet/minecraft/text/Text;Z)V"))
     private Text bates$replaceQuitMessage(Text text) {
+        String name = player.getName().getString();
         return TextTools.deserialize(
                 ConfigManager.get().leaveMessage,
-                new String[]{"player"},
-                new String[]{player.getName().getString()}
+                new String[]{"name", "display-name"},
+                new String[]{name, ConfigManager.get().displayNames.getOrDefault(name, name)}
         );
     }
 }
