@@ -107,6 +107,10 @@ public class TextTools {
         return result;
     }
 
+    public static TextToolsBuilder builder() {
+        return new TextToolsBuilder();
+    }
+
     private static void flush(Deque<Style> stack, StringBuilder buffer, MutableText result) {
         if (buffer.isEmpty()) return;
 

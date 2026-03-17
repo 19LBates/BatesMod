@@ -9,10 +9,11 @@ public class ChatMessageEvent {
                     String name = sender.getName().getString();
                     String content = message.getContent().getString();
                     for (ServerPlayerEntity player : sender.getEntityWorld().getPlayers()) {
-                        player.sendMessage(TextTools.deserialize((ConfigManager.get().chatMessageFormat),
-                                        new String[]{"name", "message", "display-name"},
-                                        new String[]{name, content, ConfigManager.get().displayNames.getOrDefault(name, name)}
-                                )
+                        player.sendMessage(TextTools.builder().input(ConfigManager.get().chatMessageFormat)
+                                .placeholder("name", name)
+                                .placeholder("message", content)
+                                .placeholder("display-name", ConfigManager.get().displayNames.getOrDefault(name, name))
+                                .build()
                         );
                     }
                     return false;
