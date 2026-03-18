@@ -10,24 +10,24 @@ import java.util.Objects;
 public class TextTools {
 
     private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated, String[] colors) {
-        public Style withBold(boolean v) {
-            return new Style(v, italic, underline, strikethrough, obfuscated, cloneColors());
+        public Style withBold(boolean z) {
+            return new Style(z, italic, underline, strikethrough, obfuscated, cloneColors());
         }
 
-        public Style withItalic(boolean v) {
-            return new Style(bold, v, underline, strikethrough, obfuscated, cloneColors());
+        public Style withItalic(boolean z) {
+            return new Style(bold, z, underline, strikethrough, obfuscated, cloneColors());
         }
 
-        public Style withUnderline(boolean v) {
-            return new Style(bold, italic, v, strikethrough, obfuscated, cloneColors());
+        public Style withUnderline(boolean z) {
+            return new Style(bold, italic, z, strikethrough, obfuscated, cloneColors());
         }
 
-        public Style withStrikethrough(boolean v) {
-            return new Style(bold, italic, underline, v, obfuscated, cloneColors());
+        public Style withStrikethrough(boolean z) {
+            return new Style(bold, italic, underline, z, obfuscated, cloneColors());
         }
 
-        public Style withObfuscated(boolean v) {
-            return new Style(bold, italic, underline, strikethrough, v, cloneColors());
+        public Style withObfuscated(boolean z) {
+            return new Style(bold, italic, underline, strikethrough, z, cloneColors());
         }
 
         public Style withColors(String[] c) {
