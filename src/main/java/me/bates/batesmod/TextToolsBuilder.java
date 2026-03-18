@@ -33,6 +33,7 @@ public class TextToolsBuilder {
         if (input == null) {
             throw new NullPointerException("Input cannot be null");
         }
+
         return TextTools.deserialize(input, placeholders.toArray(String[]::new),
                 replacements.toArray(String[]::new),
                 literalPlaceholders.toArray(String[]::new),

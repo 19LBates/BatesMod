@@ -28,10 +28,9 @@ public abstract class PlayerManagerMixin {
     @ModifyArg(method = "onPlayerConnect", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/PlayerManager;broadcast(Lnet/minecraft/text/Text;Z)V"))
     private Text bates$replaceJoinMessage(Text original) {
         String name = bates$currentPlayer.getName().getString();
-        return TextTools.deserialize(
-                ConfigManager.get().joinMessage,
-                new String[]{"name", "display-name"},
-                new String[]{name, ConfigManager.get().displayNames.getOrDefault(name, name)}
-        );
+        return TextTools.builder().input(ConfigManager.get().joinMessage)
+                .placeholder("name", name)
+                .placeholder("display-name", ConfigManager.get().displayNames.getOrDefault(name, name))
+                .build();
     }
 }
