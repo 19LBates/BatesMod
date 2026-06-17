@@ -1,7 +1,7 @@
 package me.bates.batesmod;
 
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -9,7 +9,8 @@ import java.util.Objects;
 
 public class TextTools {
 
-    private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated, String[] colors) {
+    private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated,
+                         String[] colors) {
         public Style withBold(boolean v) {
             return new Style(v, italic, underline, strikethrough, obfuscated, cloneColors());
         }
@@ -40,18 +41,18 @@ public class TextTools {
         }
     }
 
-    public static MutableText deserialize(String s, String[] placeholders, String[] replacements) {
+    public static MutableComponent deserialize(String s, String[] placeholders, String[] replacements) {
         return deserialize(applyPlaceholders(s, placeholders, replacements, false));
     }
 
-    public static MutableText deserialize(String s, String[] placeholders, String[] replacements, String[] literalPlaceholders, String[] literalReplacements) {
+    public static MutableComponent deserialize(String s, String[] placeholders, String[] replacements, String[] literalPlaceholders, String[] literalReplacements) {
         return deserialize(applyPlaceholders(s, literalPlaceholders, literalReplacements, true), placeholders, replacements);
     }
 
-    public static MutableText deserialize(String s) {
+    public static MutableComponent deserialize(String s) {
         Deque<Style> stack = new ArrayDeque<>();
         StringBuilder buffer = new StringBuilder();
-        MutableText result = Text.empty();
+        MutableComponent result = Component.empty();
 
         stack.push(new Style(false, false, false, false, false, null));
 
@@ -79,16 +80,48 @@ public class TextTools {
                     stack.push(Objects.requireNonNull(current).withColors(new String[]{tag.substring(6)}));
                 } else if (tag.startsWith("gradient:")) {
                     stack.push(Objects.requireNonNull(current).withColors(tag.substring(9).split(":")));
-                } else if (tag.equals("bold")) {
+                } else if (tag.equals("bold") || tag.equals("l")) {
                     stack.push(Objects.requireNonNull(current).withBold(true));
-                } else if (tag.equals("italic")) {
+                } else if (tag.equals("italic") || tag.equals("o") || tag.equals("i")) {
                     stack.push(Objects.requireNonNull(current).withItalic(true));
-                } else if (tag.equals("underline")) {
+                } else if (tag.equals("underline") || tag.equals("n") || tag.equals("u")) {
                     stack.push(Objects.requireNonNull(current).withUnderline(true));
-                } else if (tag.equals("strikethrough")) {
+                } else if (tag.equals("strikethrough") || tag.equals("m") || tag.equals("s")) {
                     stack.push(Objects.requireNonNull(current).withStrikethrough(true));
-                } else if (tag.equals("obfuscated")) {
+                } else if (tag.equals("obfuscated") || tag.equals("k")) {
                     stack.push(Objects.requireNonNull(current).withObfuscated(true));
+                } else if (tag.equals("black") || tag.equals("0")) {
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"000000"}));
+                } else if (tag.equals("dark_blue") || tag.equals("1")) {
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"0000AA"}));
+                } else if (tag.equals("dark_green") || tag.equals("2")) {
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"00AA00"}));
+                } else if (tag.equals("dark_aqua") || tag.equals("3")) {
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"00AAAA"}));
+                } else if (tag.equals("dark_red") || tag.equals("4")) {
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"AA0000"}));
+                } else if (tag.equals("dark_purple") || tag.equals("5")) {
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"AA00AA"}));
+                } else if (tag.equals("gold") || tag.equals("6")) {
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"FFAA00"}));
+                } else if (tag.equals("gray") || tag.equals("7")) {
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"AAAAAA"}));
+                } else if (tag.equals("dark_gray") || tag.equals("8")) {
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"555555"}));
+                } else if (tag.equals("blue") || tag.equals("9")) {
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"5555FF"}));
+                } else if (tag.equals("green") || tag.equals("a")) {
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"55FF55"}));
+                } else if (tag.equals("aqua") || tag.equals("b")) {
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"55FFFF"}));
+                } else if (tag.equals("red") || tag.equals("c")) {
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"FF5555"}));
+                } else if (tag.equals("light_purple") || tag.equals("d")) {
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"FF55FF"}));
+                } else if (tag.equals("yellow") || tag.equals("e")) {
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"FF5555"}));
+                } else if (tag.equals("white") || tag.equals("f")) {
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"FFFFFF"}));
                 }
 
                 //Close tags
@@ -111,40 +144,40 @@ public class TextTools {
         return new TextToolsBuilder();
     }
 
-    private static void flush(Deque<Style> stack, StringBuilder buffer, MutableText result) {
+    private static void flush(Deque<Style> stack, StringBuilder buffer, MutableComponent result) {
         if (buffer.isEmpty()) return;
 
         String text = buffer.toString();
         buffer.setLength(0);
 
         if (stack.isEmpty()) {
-            result.append(Text.literal(text));
+            result.append(Component.literal(text));
             return;
         }
 
         Style style = stack.peek();
-        MutableText output;
+        MutableComponent output;
 
         if (style.colors == null) {
-            output = Text.literal(text);
+            output = Component.literal(text);
         } else if (style.colors.length == 1) {
-            output = colorText(text, style.colors[0]);
+            output = colorComponent(text, style.colors[0]);
         } else {
             output = gradient(text, style.colors);
         }
 
-        if (style.bold) output.styled(s -> s.withBold(true));
-        if (style.italic) output.styled(s -> s.withItalic(true));
-        if (style.underline) output.styled(s -> s.withUnderline(true));
-        if (style.strikethrough) output.styled(s -> s.withStrikethrough(true));
-        if (style.obfuscated) output.styled(s -> s.withObfuscated(true));
+        if (style.bold) output.withStyle(s -> s.withBold(true));
+        if (style.italic) output.withStyle(s -> s.withItalic(true));
+        if (style.underline) output.withStyle(s -> s.withUnderlined(true));
+        if (style.strikethrough) output.withStyle(s -> s.withStrikethrough(true));
+        if (style.obfuscated) output.withStyle(s -> s.withObfuscated(true));
 
         result.append(output);
     }
 
-    private static MutableText gradient(String text, String[] colors) {
+    private static MutableComponent gradient(String text, String[] colors) {
         if (text.length() < 2) {
-            throw new IllegalArgumentException("Text too short! At least 2 characters needed.");
+            throw new IllegalArgumentException("Component too short! At least 2 characters needed.");
         }
 
         if (colors.length < 2) {
@@ -166,7 +199,7 @@ public class TextTools {
             rgbColors[i][2] = Integer.parseInt(colors[i].substring(4, 6), 16);
         }
 
-        MutableText output = Text.empty();
+        MutableComponent output = Component.empty();
         int len = text.length();
         int numSegments = colors.length - 1;
 
@@ -180,15 +213,15 @@ public class TextTools {
             int b = lerp(rgbColors[segIndex][2], rgbColors[segIndex + 1][2], localT);
 
             int colorInt = (r << 16) | (g << 8) | b;
-            output.append(Text.literal(String.valueOf(text.charAt(i))).styled(style -> style.withColor(colorInt)));
+            output.append(Component.literal(String.valueOf(text.charAt(i))).withStyle(style -> style.withColor(colorInt)));
         }
 
         return output;
     }
 
-    private static MutableText colorText(String text, String color) {
+    private static MutableComponent colorComponent(String text, String color) {
         if (text.isEmpty()) {
-            return Text.empty();
+            return Component.empty();
         }
 
         color = format(color);
@@ -197,7 +230,7 @@ public class TextTools {
         }
 
         int colorInt = Integer.parseInt(color, 16);
-        return Text.literal(text).styled(style -> style.withColor(colorInt));
+        return Component.literal(text).withStyle(style -> style.withColor(colorInt));
     }
 
     private static int lerp(int num1, int num2, float t) {
@@ -220,10 +253,11 @@ public class TextTools {
 
         for (int i = 0; i < placeholders.length; i++) {
             String placeholder = placeholders[i];
+            String replacement = replacements[i];
             if (literal) {
-                placeholder = placeholder.replace("<", "\\<").replace(">", "\\>");
+                replacement = replacement.replace("<", "\\<").replace(">", "\\>");
             }
-            out = out.replace("%" + placeholder + "%", replacements[i]);
+            out = out.replace("%" + placeholder + "%", replacement);
         }
 
         return out;

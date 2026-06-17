@@ -5,16 +5,16 @@
   "mixins": [
     "BreakDoorGoalMixin",
     "DoorInteractGoalAccessor",
-    "EatCarrotCropGoalMixin",
-    "EatGrassGoalMixin",
+    "RaidGardenGoal",
+    "EatBlockGoalMixin",
     "FarmlandBlockMixin",
     "LivingEntityMixin",
     "MobEntityMixin",
-    "PickUpBlockGoalMixin",
-    "PlaceBlockGoalMixin",
-    "PlayerManagerMixin",
-    "ServerPlayNetworkManagerMixin",
-    "SeverWorldMixin",
+    "TakeBlockGoalMixin",
+    "LeaveBlockGoalMixin",
+    "PlayerListMixin",
+    "ServerGamePacketListernerImplMixin",
+    "SeverLevelMixin",
     "StepAndDestroyBlockGoalMixin"
   ]
 }

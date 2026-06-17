@@ -1,6 +1,6 @@
 package me.bates.batesmod;
 
-import net.minecraft.text.MutableText;
+import net.minecraft.network.chat.MutableComponent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,13 +23,18 @@ public class TextToolsBuilder {
         return this;
     }
 
-    public TextToolsBuilder literalPlaceholder(String placeholder, String replacement) {
-        this.literalPlaceholders.add(placeholder);
-        this.literalReplacements.add(replacement);
+    public TextToolsBuilder placeholder(String placeholder, String replacement, boolean literal) {
+        if (literal) {
+            this.literalPlaceholders.add(placeholder);
+            this.literalReplacements.add(replacement);
+            return this;
+        }
+        this.placeholders.add(placeholder);
+        this.replacements.add(replacement);
         return this;
     }
 
-    public MutableText build() {
+    public MutableComponent build() {
         if (input == null) {
             throw new NullPointerException("Input cannot be null");
         }
