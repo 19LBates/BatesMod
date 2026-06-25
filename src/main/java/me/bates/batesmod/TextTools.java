@@ -9,8 +9,7 @@ import java.util.Objects;
 
 public class TextTools {
 
-    private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated,
-                         String[] colors) {
+    private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated, String[] colors) {
         public Style withBold(boolean v) {
             return new Style(v, italic, underline, strikethrough, obfuscated, cloneColors());
         }

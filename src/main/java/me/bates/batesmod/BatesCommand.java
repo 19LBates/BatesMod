@@ -4,6 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.permissions.Permissions;
+
 import static net.minecraft.commands.Commands.*;
 
 
@@ -26,21 +27,24 @@ public class BatesCommand {
 
     public static int execute(CommandContext<?> context) {
         CommandSourceStack source = (CommandSourceStack) context.getSource();
-        source.sendSuccess(() -> TextTools.deserialize("[<gradient:#7b41f0:#57bff2>BatesMod</gradient>] Welcome to BatesMod!"), false);
+        source.sendSuccess(() -> TextTools.builder().input("[%bates%] Welcome to BatesMod!")
+                        .placeholder("bates", ConfigManager.get().batesModGradient).build(), false);
         return 1;
     }
 
     public static int executeReload(CommandContext<?> context) {
         CommandSourceStack source = (CommandSourceStack) context.getSource();
         ConfigManager.load();
-        source.sendSuccess(() -> TextTools.deserialize("[<gradient:#7b41f0:#57bff2>BatesMod</gradient>] Config reloaded!"), false);
+        source.sendSuccess(() -> TextTools.builder().input("[%bates%] Config reloaded!")
+                .placeholder("bates", ConfigManager.get().batesModGradient).build(), false);
         return 1;
     }
 
     public static int executeVersion(CommandContext<?> context) {
         CommandSourceStack source = (CommandSourceStack) context.getSource();
-        String version = BatesMod.VERSION;
-        source.sendSuccess(() -> TextTools.deserialize("[<gradient:#7b41f0:#57bff2>BatesMod</gradient>] Current version: " + version), false);
+        source.sendSuccess(() -> TextTools.builder().input("[%bates%] Current version: %version%")
+                .placeholder("bates", ConfigManager.get().batesModGradient)
+                .placeholder("version", BatesMod.VERSION).build(), false);
         return 1;
     }
 }

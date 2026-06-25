@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ModConfig {
+    public String batesModGradient = "<gradient:#7b41f0:#57bff2>BatesMod</gradient>";
     public String joinMessage = "<gradient:41ff6d:72baff>%player% hopped on</gradient>";
     public String leaveMessage = "<gradient:#ff5e5e:#ffbc72>%player% hopped off</gradient>";
     public String chatMessageFormat = "\\<%name%\\> %message%";
@@ -12,4 +13,6 @@ public class ModConfig {
     public List<String> filterPhrases = new ArrayList<>();
     public List<String> filterRegexes = new ArrayList<>();
     public Map<String, String> displayNames = Map.of();
+    public String protectedRegionMessage = "[%bates%] This region is protected!";
+    public List<Region> protectedRegions = new ArrayList<>();
 }

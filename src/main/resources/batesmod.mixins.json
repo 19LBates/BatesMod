@@ -4,17 +4,19 @@
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "BreakDoorGoalMixin",
+    "CropBlockMixin",
     "DoorInteractGoalAccessor",
-    "RaidGardenGoal",
     "EatBlockGoalMixin",
     "FarmlandBlockMixin",
+    "LeaveBlockGoalMixin",
     "LivingEntityMixin",
     "MobEntityMixin",
-    "TakeBlockGoalMixin",
-    "LeaveBlockGoalMixin",
     "PlayerListMixin",
+    "RaidGardenGoal",
     "ServerGamePacketListernerImplMixin",
     "SeverLevelMixin",
-    "StepAndDestroyBlockGoalMixin"
+    "StepAndDestroyBlockGoalMixin",
+    "TakeBlockGoalMixin",
+    "TurtleEggBlockMixin"
   ]
 }
