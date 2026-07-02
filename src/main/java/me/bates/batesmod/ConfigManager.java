@@ -50,7 +50,7 @@ public class ConfigManager {
         return config;
     }
 
-    private static void merge (ModConfig base, ModConfig overlay) {
+    private static void merge(ModConfig base, ModConfig overlay) {
         try {
             for (var field : ModConfig.class.getFields()) {
                 Object value = field.get(overlay);

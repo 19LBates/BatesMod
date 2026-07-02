@@ -118,7 +118,7 @@ public class TextTools {
                 } else if (tag.equals("light_purple") || tag.equals("d")) {
                     stack.push(Objects.requireNonNull(current).withColors(new String[]{"FF55FF"}));
                 } else if (tag.equals("yellow") || tag.equals("e")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"FF5555"}));
+                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"FFFF55"}));
                 } else if (tag.equals("white") || tag.equals("f")) {
                     stack.push(Objects.requireNonNull(current).withColors(new String[]{"FFFFFF"}));
                 }

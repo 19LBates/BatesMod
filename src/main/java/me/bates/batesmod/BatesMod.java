@@ -40,6 +40,7 @@ public class BatesMod implements ModInitializer {
             BroadcastCommand.register(dispatcher);
             DisplayNameCommand.register(dispatcher);
             ProtectedRegionCommand.register(dispatcher);
+            TimeCommand.register(dispatcher);
             SkibCommand.register(dispatcher);
         });
     }

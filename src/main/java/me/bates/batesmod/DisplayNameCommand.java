@@ -50,6 +50,7 @@ public class DisplayNameCommand {
         }
 
         ConfigManager.get().displayNames.put(username, displayName);
+        ConfigManager.save();
 
         context.getSource().sendSystemMessage(TextTools.builder().input("[%bates%] User %username% is now called %display-name%")
                 .placeholder("bates", ConfigManager.get().batesModGradient)
@@ -62,6 +63,7 @@ public class DisplayNameCommand {
 
     private static int removeDisplayName(CommandContext<CommandSourceStack> context, String username) {
         ConfigManager.get().displayNames.remove(username);
+        ConfigManager.save();
 
         context.getSource().sendSystemMessage(TextTools.builder().input("[%bates%] Removed display name of %username%")
                 .placeholder("bates", ConfigManager.get().batesModGradient)

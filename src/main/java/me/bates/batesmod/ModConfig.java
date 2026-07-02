@@ -12,7 +12,9 @@ public class ModConfig {
     public List<String> filterLoggers = new ArrayList<>();
     public List<String> filterPhrases = new ArrayList<>();
     public List<String> filterRegexes = new ArrayList<>();
-    public Map<String, String> displayNames = Map.of();
     public String protectedRegionMessage = "[%bates%] This region is protected!";
+    public String protectedRegionMessageAdmin = "[%bates%] This region is protected! Region name: \"%region-name%\"";
+    public String timeMessage = "[%bates%] The time is currently %ticks% ticks, or roughly %time%.";
     public List<Region> protectedRegions = new ArrayList<>();
+    public Map<String, String> displayNames = Map.of();
 }

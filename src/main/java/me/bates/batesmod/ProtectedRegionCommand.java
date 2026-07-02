@@ -18,6 +18,7 @@ public class ProtectedRegionCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(literal("protected-region")
                 .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_ADMIN))
+
                 .then(
                         literal("add")
                                 .then(argument("name", StringArgumentType.string())
@@ -28,6 +29,7 @@ public class ProtectedRegionCommand {
                                         )
                                 )
                 )
+
                 .then(
                         literal("remove")
                                 .then(argument("name", StringArgumentType.string())
@@ -37,6 +39,18 @@ public class ProtectedRegionCommand {
                                                 ))
                                         .executes(ProtectedRegionCommand::removeRegion)
                                 )
+                )
+
+                .then(
+                        literal("info")
+                                .then(argument("name", StringArgumentType.string())
+                                        .suggests((_, builder) ->
+                                                SharedSuggestionProvider.suggest(ConfigManager.get().protectedRegions
+                                                        .stream().map(Region::getName).collect(Collectors.toList()), builder
+                                                ))
+                                        .executes(ProtectedRegionCommand::infoOfRegion)
+                                )
+
                 )
         );
     }
@@ -65,6 +79,7 @@ public class ProtectedRegionCommand {
                         to.getZ()
                 )
         );
+        ConfigManager.save();
         context.getSource().sendSystemMessage(TextTools.builder().input("[%bates%] Protected Region \"%name%\" added.")
                 .placeholder("bates", ConfigManager.get().batesModGradient)
                 .placeholder("name", name)
@@ -75,7 +90,19 @@ public class ProtectedRegionCommand {
 
     private static int removeRegion(CommandContext<CommandSourceStack> context) {
         String name = StringArgumentType.getString(context, "name");
-        ConfigManager.get().protectedRegions.removeIf(r -> r.getName().equals(name));
+        Region region = ConfigManager.get().protectedRegions.stream().filter(r -> r.getName().equals(name)).findFirst().orElse(null);
+
+        if (region == null) {
+            context.getSource().sendSystemMessage(TextTools.builder().input("[%bates%] <c>No Protected Region with name \"%name%\" exists!</c>")
+                    .placeholder("bates", ConfigManager.get().batesModGradient)
+                    .placeholder("name", name)
+                    .build()
+            );
+            return 0;
+        }
+
+        ConfigManager.get().protectedRegions.remove(region);
+        ConfigManager.save();
         context.getSource().sendSystemMessage(TextTools.builder().input("[%bates%] Protected Region \"%name%\" removed.")
                 .placeholder("bates", ConfigManager.get().batesModGradient)
                 .placeholder("name", name)
@@ -83,4 +110,32 @@ public class ProtectedRegionCommand {
         );
         return 1;
     }
+
+    private static int infoOfRegion(CommandContext<CommandSourceStack> context) {
+        String name = StringArgumentType.getString(context, "name");
+        Region region = ConfigManager.get().protectedRegions.stream().filter(r -> r.getName().equals(name)).findFirst().orElse(null);
+
+        if (region == null) {
+            context.getSource().sendSystemMessage(TextTools.builder().input("[%bates%] <c>No Protected Region with name \"%name%\" exists!</c>")
+                    .placeholder("bates", ConfigManager.get().batesModGradient)
+                    .placeholder("name", name)
+                    .build()
+            );
+            return 0;
+        }
+
+        context.getSource().sendSystemMessage(TextTools.builder().input("[%bates%] Protected Region \"%name%\": From <b>%x1% %y1% %z1%</b>, To <e>%x2% %y2% %z2%</e>")
+                .placeholder("bates", ConfigManager.get().batesModGradient)
+                .placeholder("name", name)
+                .placeholder("x1", String.valueOf(region.getLowerX()))
+                .placeholder("y1", String.valueOf(region.getLowerY()))
+                .placeholder("z1", String.valueOf(region.getLowerZ()))
+                .placeholder("x2", String.valueOf(region.getUpperX()))
+                .placeholder("y2", String.valueOf(region.getUpperY()))
+                .placeholder("z2", String.valueOf(region.getUpperZ()))
+                .build()
+        );
+        return 1;
+    }
+
 }
