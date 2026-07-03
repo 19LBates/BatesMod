@@ -1,5 +1,6 @@
 package me.bates.batesmod.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import me.bates.batesmod.ConfigManager;
 import me.bates.batesmod.TextTools;
 import net.minecraft.network.Connection;
@@ -33,5 +34,15 @@ public abstract class PlayerListMixin {
                 .placeholder("name", name)
                 .placeholder("display-name", ConfigManager.get().displayNames.getOrDefault(name, name))
                 .build();
+    }
+
+    @ModifyReturnValue(method = "canPlayerLogin", at = @At(value = "RETURN"))
+    public Component newMessage(Component original) {
+        if (original == null) return null;
+        if (original.equals(Component.translatable("multiplayer.disconnect.not_whitelisted")))
+            return TextTools.builder()
+                    .input(ConfigManager.get().notWhitelistedMessage)
+                    .build();
+        return original;
     }
 }

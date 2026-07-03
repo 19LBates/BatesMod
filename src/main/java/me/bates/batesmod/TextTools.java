@@ -1,42 +1,102 @@
 package me.bates.batesmod;
 
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Objects;
+import java.util.*;
 
 public class TextTools {
 
-    private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated, String[] colors) {
+    private static final int HEX = 16;
+
+    private static final Map<String, String> PREDEFINED_COLORS = Map.ofEntries(
+            Map.entry("black", "000000"),
+            Map.entry("0", "000000"),
+
+            Map.entry("dark_blue", "0000AA"),
+            Map.entry("1", "0000AA"),
+
+            Map.entry("dark_green", "00AA00"),
+            Map.entry("2", "00AA00"),
+
+            Map.entry("dark_aqua", "00AAAA"),
+            Map.entry("3", "00AAAA"),
+
+            Map.entry("dark_red", "AA0000"),
+            Map.entry("4", "AA0000"),
+
+            Map.entry("dark_purple", "AA00AA"),
+            Map.entry("5", "AA00AA"),
+
+            Map.entry("gold", "FFAA00"),
+            Map.entry("6", "FFAA00"),
+
+            Map.entry("gray", "AAAAAA"),
+            Map.entry("7", "AAAAAA"),
+
+            Map.entry("dark_gray", "555555"),
+            Map.entry("8", "555555"),
+
+            Map.entry("blue", "5555FF"),
+            Map.entry("9", "5555FF"),
+
+            Map.entry("green", "55FF55"),
+            Map.entry("a", "55FF55"),
+
+            Map.entry("aqua", "55FFFF"),
+            Map.entry("b", "55FFFF"),
+
+            Map.entry("red", "FF5555"),
+            Map.entry("c", "FF5555"),
+
+            Map.entry("light_purple", "FF55FF"),
+            Map.entry("d", "FF55FF"),
+
+            Map.entry("yellow", "FFFF55"),
+            Map.entry("e", "FFFF55"),
+
+            Map.entry("white", "FFFFFF"),
+            Map.entry("f", "FFFFFF")
+    );
+
+    private interface Color {
+    }
+
+    record SolidColor(int rgb) implements Color {
+    }
+
+    record Gradient(int[] rgb) implements Color {
+    }
+
+    private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated,
+                         boolean copyable, Color color) {
         public Style withBold(boolean v) {
-            return new Style(v, italic, underline, strikethrough, obfuscated, cloneColors());
+            return new Style(v, italic, underline, strikethrough, obfuscated, copyable, color);
         }
 
         public Style withItalic(boolean v) {
-            return new Style(bold, v, underline, strikethrough, obfuscated, cloneColors());
+            return new Style(bold, v, underline, strikethrough, obfuscated, copyable, color);
         }
 
         public Style withUnderline(boolean v) {
-            return new Style(bold, italic, v, strikethrough, obfuscated, cloneColors());
+            return new Style(bold, italic, v, strikethrough, obfuscated, copyable, color);
         }
 
         public Style withStrikethrough(boolean v) {
-            return new Style(bold, italic, underline, v, obfuscated, cloneColors());
+            return new Style(bold, italic, underline, v, obfuscated, copyable, color);
         }
 
         public Style withObfuscated(boolean v) {
-            return new Style(bold, italic, underline, strikethrough, v, cloneColors());
+            return new Style(bold, italic, underline, strikethrough, v, copyable, color);
         }
 
-        public Style withColors(String[] c) {
-            String[] newColors = c == null ? null : c.clone();
-            return new Style(bold, italic, underline, strikethrough, obfuscated, newColors);
+        public Style withCopyable(boolean v) {
+            return new Style(bold, italic, underline, strikethrough, obfuscated, v, color);
         }
 
-        private String[] cloneColors() {
-            return colors == null ? null : colors.clone();
+        public Style withColor(Color c) {
+            return new Style(bold, italic, underline, strikethrough, obfuscated, copyable, c);
         }
     }
 
@@ -53,7 +113,7 @@ public class TextTools {
         StringBuilder buffer = new StringBuilder();
         MutableComponent result = Component.empty();
 
-        stack.push(new Style(false, false, false, false, false, null));
+        stack.push(new Style(false, false, false, false, false, false, null));
 
         for (int i = 0; i < s.length(); ) {
             char c = s.charAt(i);
@@ -68,59 +128,51 @@ public class TextTools {
             }
             if (c == '<') {
                 flush(stack, buffer, result);
-                int end = s.indexOf('>', i + 1);
+
+                //Start searching for '>' after '<'
+                int end = -1;
+                for (int j = i + 1; j < s.length(); j++) {
+                    if (s.charAt(j) == '>') {
+                        end = j;
+                        break;
+                    }
+                }
                 if (end == -1) break;
+
                 String tag = s.substring(i + 1, end);
 
                 Style current = stack.peek();
 
                 //Open tags
-                if (tag.startsWith("color:")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{tag.substring(6)}));
+                String predefined_color = PREDEFINED_COLORS.get(tag);
+                if (predefined_color != null) {
+                    stack.push(Objects.requireNonNull(current).withColor(new SolidColor(hexStringToInt(predefined_color))));
+
+                } else if (tag.startsWith("color:")) {
+                    int color = hexStringToInt(tag.substring(6));
+                    stack.push(Objects.requireNonNull(current).withColor(new SolidColor(color)));
+
                 } else if (tag.startsWith("gradient:")) {
-                    stack.push(Objects.requireNonNull(current).withColors(tag.substring(9).split(":")));
+                    int[] colors = Arrays.stream(tag.substring(9).split(":")).mapToInt(TextTools::hexStringToInt).toArray();
+                    stack.push(Objects.requireNonNull(current).withColor(new Gradient(colors)));
+
                 } else if (tag.equals("bold") || tag.equals("l")) {
                     stack.push(Objects.requireNonNull(current).withBold(true));
+
                 } else if (tag.equals("italic") || tag.equals("o") || tag.equals("i")) {
                     stack.push(Objects.requireNonNull(current).withItalic(true));
+
                 } else if (tag.equals("underline") || tag.equals("n") || tag.equals("u")) {
                     stack.push(Objects.requireNonNull(current).withUnderline(true));
+
                 } else if (tag.equals("strikethrough") || tag.equals("m") || tag.equals("s")) {
                     stack.push(Objects.requireNonNull(current).withStrikethrough(true));
+
                 } else if (tag.equals("obfuscated") || tag.equals("k")) {
                     stack.push(Objects.requireNonNull(current).withObfuscated(true));
-                } else if (tag.equals("black") || tag.equals("0")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"000000"}));
-                } else if (tag.equals("dark_blue") || tag.equals("1")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"0000AA"}));
-                } else if (tag.equals("dark_green") || tag.equals("2")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"00AA00"}));
-                } else if (tag.equals("dark_aqua") || tag.equals("3")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"00AAAA"}));
-                } else if (tag.equals("dark_red") || tag.equals("4")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"AA0000"}));
-                } else if (tag.equals("dark_purple") || tag.equals("5")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"AA00AA"}));
-                } else if (tag.equals("gold") || tag.equals("6")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"FFAA00"}));
-                } else if (tag.equals("gray") || tag.equals("7")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"AAAAAA"}));
-                } else if (tag.equals("dark_gray") || tag.equals("8")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"555555"}));
-                } else if (tag.equals("blue") || tag.equals("9")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"5555FF"}));
-                } else if (tag.equals("green") || tag.equals("a")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"55FF55"}));
-                } else if (tag.equals("aqua") || tag.equals("b")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"55FFFF"}));
-                } else if (tag.equals("red") || tag.equals("c")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"FF5555"}));
-                } else if (tag.equals("light_purple") || tag.equals("d")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"FF55FF"}));
-                } else if (tag.equals("yellow") || tag.equals("e")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"FFFF55"}));
-                } else if (tag.equals("white") || tag.equals("f")) {
-                    stack.push(Objects.requireNonNull(current).withColors(new String[]{"FFFFFF"}));
+
+                } else if (tag.equals("copyable") || tag.equals("copy")) {
+                    stack.push(Objects.requireNonNull(current).withCopyable(true));
                 }
 
                 //Close tags
@@ -157,12 +209,12 @@ public class TextTools {
         Style style = stack.peek();
         MutableComponent output;
 
-        if (style.colors == null) {
+        if (style.color == null) {
             output = Component.literal(text);
-        } else if (style.colors.length == 1) {
-            output = colorComponent(text, style.colors[0]);
+        } else if (style.color instanceof SolidColor) {
+            output = colorComponent(text, ((SolidColor) style.color).rgb);
         } else {
-            output = gradient(text, style.colors);
+            output = generateGradient(text, ((Gradient) style.color).rgb);
         }
 
         if (style.bold) output.withStyle(s -> s.withBold(true));
@@ -170,11 +222,12 @@ public class TextTools {
         if (style.underline) output.withStyle(s -> s.withUnderlined(true));
         if (style.strikethrough) output.withStyle(s -> s.withStrikethrough(true));
         if (style.obfuscated) output.withStyle(s -> s.withObfuscated(true));
+        if (style.copyable) output = output.withStyle(s -> s.withClickEvent(new ClickEvent.CopyToClipboard(text)));
 
         result.append(output);
     }
 
-    private static MutableComponent gradient(String text, String[] colors) {
+    private static MutableComponent generateGradient(String text, int[] colors) {
         if (text.length() < 2) {
             throw new IllegalArgumentException("Component too short! At least 2 characters needed.");
         }
@@ -183,19 +236,12 @@ public class TextTools {
             throw new IllegalArgumentException("Too few colors! At least 2 colors needed.");
         }
 
-        colors = colors.clone();
-        for (int i = 0; i < colors.length; i++) {
-            colors[i] = format(colors[i]);
-        }
-
         int[][] rgbColors = new int[colors.length][3];
         for (int i = 0; i < colors.length; i++) {
-            if (!colors[i].matches("[0-9a-fA-F]{6}")) {
-                throw new IllegalArgumentException("Invalid color:" + colors[i]);
-            }
-            rgbColors[i][0] = Integer.parseInt(colors[i].substring(0, 2), 16);
-            rgbColors[i][1] = Integer.parseInt(colors[i].substring(2, 4), 16);
-            rgbColors[i][2] = Integer.parseInt(colors[i].substring(4, 6), 16);
+            int eightBitMask = 0xFF;
+            rgbColors[i][0] = (colors[i] >> 16) & eightBitMask;
+            rgbColors[i][1] = (colors[i] >> 8) & eightBitMask;
+            rgbColors[i][2] = colors[i] & eightBitMask;
         }
 
         MutableComponent output = Component.empty();
@@ -218,29 +264,20 @@ public class TextTools {
         return output;
     }
 
-    private static MutableComponent colorComponent(String text, String color) {
-        if (text.isEmpty()) {
-            return Component.empty();
-        }
-
-        color = format(color);
-        if (!color.matches("[0-9a-fA-F]{6}")) {
-            throw new IllegalArgumentException("Invalid color: " + color);
-        }
-
-        int colorInt = Integer.parseInt(color, 16);
-        return Component.literal(text).withStyle(style -> style.withColor(colorInt));
+    private static MutableComponent colorComponent(String text, int color) {
+        if (text.isEmpty()) return Component.empty();
+        return Component.literal(text).withStyle(style -> style.withColor(color));
     }
 
     private static int lerp(int num1, int num2, float t) {
         return (int) (num1 + (num2 - num1) * t);
     }
 
-    private static String format(String s) {
+    private static int hexStringToInt(String s) {
         if (s.contains("#")) {
             s = s.substring(1);
         }
-        return s.toLowerCase();
+        return Integer.parseInt(s, HEX);
     }
 
     private static String applyPlaceholders(String s, String[] placeholders, String[] replacements, boolean literal) {
