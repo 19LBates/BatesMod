@@ -1,6 +1,7 @@
 package me.bates.batesmod;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -15,9 +16,11 @@ public class ModConfig {
     public List<String> filterRegexes = new ArrayList<>();
     public String protectedRegionMessage = "[%bates%] This region is protected!";
     public String protectedRegionMessageAdmin = "[%bates%] This region is protected! Region name: \"%region-name%\"";
-    public String timeMessage = "[%bates%] The time is currently %ticks% ticks, or roughly %time%.";
+    public String timeMessage = "[%bates%] The time is currently %ticks% ticks, or roughly %timeColored%.";
+    public String timeMessageNoClock = "[%bates%] <c>You must have a clock in your inventory!</c>";
     public String motd = "<gray>A Minecraft Server</gray>";
     public boolean seedCommandAllowed = false;
     public List<Region> protectedRegions = new ArrayList<>();
     public Map<String, String> displayNames = Map.of();
+    public Map<String, MobGriefOverride> mobGriefMap = new HashMap<>();
 }

@@ -1,6 +1,6 @@
 package me.bates.batesmod.mixin;
 
-import me.bates.batesmod.ModGameRules;
+import me.bates.batesmod.MobGriefOverrideHandler;
 import net.minecraft.core.Holder;
 import net.minecraft.core.particles.ExplosionParticleInfo;
 import net.minecraft.core.particles.ParticleOptions;
@@ -40,7 +40,8 @@ public abstract class SeverLevelMixin {
     @ModifyArg(method = "explode", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/ServerExplosion;<init>(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/damagesource/DamageSource;Lnet/minecraft/world/level/ExplosionDamageCalculator;Lnet/minecraft/world/phys/Vec3;FZLnet/minecraft/world/level/Explosion$BlockInteraction;)V"))
     private net.minecraft.world.level.Explosion.BlockInteraction bates$changeDestructionType(net.minecraft.world.level.Explosion.BlockInteraction original) {
         if (interactionType != Level.ExplosionInteraction.MOB) return original;
-        if (!ModGameRules.isMobGriefEnabled(entity)) return Explosion.BlockInteraction.KEEP;
+        if (MobGriefOverrideHandler.isMobGriefEnabled(entity)) {return Explosion.BlockInteraction.DESTROY;}
+        if (!MobGriefOverrideHandler.isMobGriefEnabled(entity)) return Explosion.BlockInteraction.KEEP;
         return original;
     }
 }

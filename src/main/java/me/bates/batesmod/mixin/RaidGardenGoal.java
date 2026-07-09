@@ -1,6 +1,6 @@
 package me.bates.batesmod.mixin;
 
-import me.bates.batesmod.ModGameRules;
+import me.bates.batesmod.MobGriefOverrideHandler;
 import net.minecraft.world.entity.animal.rabbit.Rabbit;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,7 +18,7 @@ public abstract class RaidGardenGoal {
 
     @Inject(method = "canUse", at = @At("HEAD"), cancellable = true)
     private void bates$changeCanStart(CallbackInfoReturnable<Boolean> cir) {
-        if (!ModGameRules.isMobGriefEnabled(rabbit)) {
+        if (!MobGriefOverrideHandler.isMobGriefEnabled(rabbit)) {
             cir.setReturnValue(false);
         }
     }

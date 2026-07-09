@@ -24,17 +24,21 @@ public class ConfigManager {
 
             ModConfig defaults = new ModConfig();
             config = GSON.fromJson(Files.readString(CONFIG_PATH), ModConfig.class);
-            merge(config, defaults);
+            if (config == null) {
+                config = defaults;
+            } else {
+                merge(config, defaults);
+            }
             save();
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to load config:", e);
+            throw new RuntimeException("Failed to load config", e);
         }
     }
 
     public static void save() {
         try {
-            Path temp = CONFIG_PATH.resolveSibling("config.json.tmp");
+            Path temp = CONFIG_PATH.resolveSibling(CONFIG_PATH.getFileName() + ".tmp");
             Files.writeString(temp, GSON.toJson(config));
             Files.move(temp, CONFIG_PATH, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 
@@ -52,7 +56,7 @@ public class ConfigManager {
 
     private static void merge(ModConfig base, ModConfig overlay) {
         try {
-            for (var field : ModConfig.class.getFields()) {
+            for (var field : ModConfig.class.getDeclaredFields()) {
                 Object value = field.get(overlay);
                 if (field.get(base) == null && value != null) {
                     field.set(base, value);

@@ -35,7 +35,7 @@ public class ProtectedRegionCommand {
                                 .then(argument("name", StringArgumentType.string())
                                         .suggests((_, builder) ->
                                                 SharedSuggestionProvider.suggest(ConfigManager.get().protectedRegions
-                                                        .stream().map(Region::getName).collect(Collectors.toList()), builder
+                                                        .stream().map(Region::getName), builder
                                                 ))
                                         .executes(ProtectedRegionCommand::removeRegion)
                                 )

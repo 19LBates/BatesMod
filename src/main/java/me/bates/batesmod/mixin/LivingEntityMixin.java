@@ -1,6 +1,6 @@
 package me.bates.batesmod.mixin;
 
-import me.bates.batesmod.ModGameRules;
+import me.bates.batesmod.MobGriefOverrideHandler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
@@ -16,7 +16,7 @@ public class LivingEntityMixin {
 
     @Redirect(method = "createWitherRose", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Z"))
     private boolean bates$stopWitherRose(Level instance, BlockPos pos, BlockState blockState, int updateFlags) {
-        if (ModGameRules.isMobGriefEnabled(EntityType.WITHER, (ServerLevel) instance)) {
+        if (MobGriefOverrideHandler.isMobGriefEnabled(EntityType.WITHER, (ServerLevel) instance)) {
             return instance.setBlock(pos, blockState, updateFlags);
         }
         return false;

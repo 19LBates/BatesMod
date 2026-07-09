@@ -21,7 +21,6 @@ public class BatesMod implements ModInitializer {
     public void onInitialize() {
         LOGGER.info("Loaded version {}", VERSION);
         registerCommands();
-        ModGameRules.init();
         ConfigManager.load();
         org.apache.logging.log4j.core.Logger root = (org.apache.logging.log4j.core.Logger) LogManager.getRootLogger();
         root.addFilter(BatesMod.LOG_FILTER);
@@ -35,10 +34,11 @@ public class BatesMod implements ModInitializer {
     }
 
     private static void registerCommands() {
-        CommandRegistrationCallback.EVENT.register((dispatcher, _, _) -> {
+        CommandRegistrationCallback.EVENT.register((dispatcher, context, _) -> {
             BatesCommand.register(dispatcher);
             BroadcastCommand.register(dispatcher);
             DisplayNameCommand.register(dispatcher);
+            MobGriefCommand.register(dispatcher, context);
             ProtectedRegionCommand.register(dispatcher);
             TimeCommand.register(dispatcher);
             SeedCommand.register(dispatcher);

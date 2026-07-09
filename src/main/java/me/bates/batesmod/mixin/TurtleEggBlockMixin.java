@@ -1,6 +1,6 @@
 package me.bates.batesmod.mixin;
 
-import me.bates.batesmod.ModGameRules;
+import me.bates.batesmod.MobGriefOverrideHandler;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -20,7 +20,7 @@ public abstract class TurtleEggBlockMixin {
             cir.setReturnValue(false);
         } else {
             if (entity instanceof LivingEntity) cir.setReturnValue(false);
-            cir.setReturnValue(ModGameRules.isMobGriefEnabled(entity));
+            cir.setReturnValue(MobGriefOverrideHandler.isMobGriefEnabled(entity));
         }
     }
 }

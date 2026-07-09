@@ -1,6 +1,6 @@
 package me.bates.batesmod.mixin;
 
-import me.bates.batesmod.ModGameRules;
+import me.bates.batesmod.MobGriefOverrideHandler;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -12,7 +12,7 @@ public abstract class BreakDoorGoalMixin {
     @Inject(method = "canUse", at = @At("HEAD"), cancellable = true)
     private void bates$changeCanUse(CallbackInfoReturnable<Boolean> cir) {
         DoorInteractGoalAccessor self = (DoorInteractGoalAccessor) this;
-        if (!ModGameRules.isMobGriefEnabled(self.getMob())) {
+        if (!MobGriefOverrideHandler.isMobGriefEnabled(self.getMob())) {
             cir.setReturnValue(false);
         }
     }

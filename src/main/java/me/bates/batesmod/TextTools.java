@@ -9,6 +9,7 @@ import java.util.*;
 public class TextTools {
 
     private static final int HEX = 16;
+    private static final int EIGHT_BIT_MASK = 0xFF;
 
     private static final Map<String, String> PREDEFINED_COLORS = Map.ofEntries(
             Map.entry("black", "000000"),
@@ -152,6 +153,14 @@ public class TextTools {
                     int color = hexStringToInt(tag.substring(6));
                     stack.push(Objects.requireNonNull(current).withColor(new SolidColor(color)));
 
+                } else if (tag.startsWith("lerp:")) {
+                    //First two values are colors, third is amount to lerp
+                    String[] split = tag.substring(5).split(":");
+                    int[] colors = Arrays.stream(split).limit(2).mapToInt(TextTools::hexStringToInt).toArray();
+                    float lerpAmount = Float.parseFloat(split[2]);
+                    int color = lerp(colors[0], colors[1], lerpAmount);
+                    stack.push(Objects.requireNonNull(current).withColor(new SolidColor(color)));
+
                 } else if (tag.startsWith("gradient:")) {
                     int[] colors = Arrays.stream(tag.substring(9).split(":")).mapToInt(TextTools::hexStringToInt).toArray();
                     stack.push(Objects.requireNonNull(current).withColor(new Gradient(colors)));
@@ -217,12 +226,15 @@ public class TextTools {
             output = generateGradient(text, ((Gradient) style.color).rgb);
         }
 
-        if (style.bold) output.withStyle(s -> s.withBold(true));
-        if (style.italic) output.withStyle(s -> s.withItalic(true));
-        if (style.underline) output.withStyle(s -> s.withUnderlined(true));
-        if (style.strikethrough) output.withStyle(s -> s.withStrikethrough(true));
-        if (style.obfuscated) output.withStyle(s -> s.withObfuscated(true));
-        if (style.copyable) output = output.withStyle(s -> s.withClickEvent(new ClickEvent.CopyToClipboard(text)));
+        output.withStyle(s -> {
+            if (style.bold) s.withBold(true);
+            if (style.italic) s.withItalic(true);
+            if (style.underline) s.withUnderlined(true);
+            if (style.strikethrough) s.withStrikethrough(true);
+            if (style.obfuscated) s.withObfuscated(true);
+            if (style.copyable) s.withClickEvent(new ClickEvent.CopyToClipboard(text));
+            return s;
+        });
 
         result.append(output);
     }
@@ -236,14 +248,6 @@ public class TextTools {
             throw new IllegalArgumentException("Too few colors! At least 2 colors needed.");
         }
 
-        int[][] rgbColors = new int[colors.length][3];
-        for (int i = 0; i < colors.length; i++) {
-            int eightBitMask = 0xFF;
-            rgbColors[i][0] = (colors[i] >> 16) & eightBitMask;
-            rgbColors[i][1] = (colors[i] >> 8) & eightBitMask;
-            rgbColors[i][2] = colors[i] & eightBitMask;
-        }
-
         MutableComponent output = Component.empty();
         int len = text.length();
         int numSegments = colors.length - 1;
@@ -252,13 +256,8 @@ public class TextTools {
             float t = i / (float) (len - 1);
             int segIndex = Math.min((int) (t * numSegments), numSegments - 1);
             float localT = t * numSegments - segIndex;
-
-            int r = lerp(rgbColors[segIndex][0], rgbColors[segIndex + 1][0], localT);
-            int g = lerp(rgbColors[segIndex][1], rgbColors[segIndex + 1][1], localT);
-            int b = lerp(rgbColors[segIndex][2], rgbColors[segIndex + 1][2], localT);
-
-            int colorInt = (r << 16) | (g << 8) | b;
-            output.append(Component.literal(String.valueOf(text.charAt(i))).withStyle(style -> style.withColor(colorInt)));
+            int curColor = lerp(colors[segIndex], colors[segIndex + 1], localT);
+            output.append(Component.literal(String.valueOf(text.charAt(i))).withStyle(style -> style.withColor(curColor)));
         }
 
         return output;
@@ -269,8 +268,20 @@ public class TextTools {
         return Component.literal(text).withStyle(style -> style.withColor(color));
     }
 
-    private static int lerp(int num1, int num2, float t) {
-        return (int) (num1 + (num2 - num1) * t);
+    private static int lerp(int color1, int color2, float t) {
+        int r1 = (color1 >> 16) & EIGHT_BIT_MASK;
+        int g1 = (color1 >> 8) & EIGHT_BIT_MASK;
+        int b1 = color1 & EIGHT_BIT_MASK;
+
+        int r2 = (color2 >> 16) & EIGHT_BIT_MASK;
+        int g2 = (color2 >> 8) & EIGHT_BIT_MASK;
+        int b2 = color2 & EIGHT_BIT_MASK;
+
+        int r = (int) (r1 + (r2 - r1) * t);
+        int g = (int) (g1 + (g2 - g1) * t);
+        int b = (int) (b1 + (b2 - b1) * t);
+
+        return (r << 16) | (g << 8) | b;
     }
 
     private static int hexStringToInt(String s) {
