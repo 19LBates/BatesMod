@@ -227,12 +227,12 @@ public class TextTools {
         }
 
         output.withStyle(s -> {
-            if (style.bold) s.withBold(true);
-            if (style.italic) s.withItalic(true);
-            if (style.underline) s.withUnderlined(true);
-            if (style.strikethrough) s.withStrikethrough(true);
-            if (style.obfuscated) s.withObfuscated(true);
-            if (style.copyable) s.withClickEvent(new ClickEvent.CopyToClipboard(text));
+            if (style.bold) s = s.withBold(true);
+            if (style.italic) s = s.withItalic(true);
+            if (style.underline) s = s.withUnderlined(true);
+            if (style.strikethrough) s = s.withStrikethrough(true);
+            if (style.obfuscated) s = s.withObfuscated(true);
+            if (style.copyable) s = s.withClickEvent(new ClickEvent.CopyToClipboard(text));
             return s;
         });
 
