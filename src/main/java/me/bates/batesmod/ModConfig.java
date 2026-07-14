@@ -7,9 +7,9 @@ import java.util.Map;
 
 public class ModConfig {
     public String batesModGradient = "<gradient:#7b41f0:#57bff2>BatesMod</gradient>";
-    public String joinMessage = "<gradient:41ff6d:72baff>%player% hopped on</gradient>";
-    public String leaveMessage = "<gradient:#ff5e5e:#ffbc72>%player% hopped off</gradient>";
-    public String chatMessageFormat = "\\<%name%\\> %message%";
+    public String joinMessage = "<gradient:41ff6d:72baff>%display-name% hopped on</gradient>";
+    public String leaveMessage = "<gradient:#ff5e5e:#ffbc72>%display-name% hopped off</gradient>";
+    public String chatMessageFormat = "\\<%display-name%\\> %message%";
     public String notWhitelistedMessage = "You are not white-listed on this server!";
     public List<String> filterLoggers = new ArrayList<>();
     public List<String> filterPhrases = new ArrayList<>();
