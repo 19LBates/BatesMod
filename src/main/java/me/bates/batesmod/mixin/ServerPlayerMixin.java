@@ -10,16 +10,20 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+
+import java.util.UUID;
+
 @Mixin(ServerPlayer.class)
-public class ServerPlayerMixin {
+public abstract class ServerPlayerMixin {
 
     @Inject(method = "getTabListDisplayName", at = @At(value = "HEAD"), cancellable = true)
     private void bates$changeTabListDisplayName(CallbackInfoReturnable<Component> cir) {
         PlayerProfileAccessor self = (PlayerProfileAccessor) this;
         String name = self.getGameProfile().name();
+        UUID uuid = self.getGameProfile().id();
 
         MutableComponent displayName = TextTools.builder()
-                .input(ConfigManager.get().displayNames.getOrDefault(name, name))
+                .input(ConfigManager.get().displayNames.getOrDefault(uuid, name))
                 .build();
 
         cir.setReturnValue(displayName);

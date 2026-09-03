@@ -27,7 +27,7 @@ public class BatesCommand {
 
     public static int execute(CommandContext<?> context) {
         CommandSourceStack source = (CommandSourceStack) context.getSource();
-        source.sendSuccess(() -> TextTools.builder().input("[%bates%] Welcome to BatesMod!")
+        source.sendSuccess(() -> TextTools.builder().input("%bates% Welcome to BatesMod!")
                         .placeholder("bates", ConfigManager.get().batesModGradient).build(), false);
         return 1;
     }
@@ -35,14 +35,14 @@ public class BatesCommand {
     public static int executeReload(CommandContext<?> context) {
         CommandSourceStack source = (CommandSourceStack) context.getSource();
         ConfigManager.load();
-        source.sendSuccess(() -> TextTools.builder().input("[%bates%] Config reloaded!")
+        source.sendSuccess(() -> TextTools.builder().input("%bates% Config reloaded!")
                 .placeholder("bates", ConfigManager.get().batesModGradient).build(), false);
         return 1;
     }
 
     public static int executeVersion(CommandContext<?> context) {
         CommandSourceStack source = (CommandSourceStack) context.getSource();
-        source.sendSuccess(() -> TextTools.builder().input("[%bates%] Current version: %version%")
+        source.sendSuccess(() -> TextTools.builder().input("%bates% Current version: %version%")
                 .placeholder("bates", ConfigManager.get().batesModGradient)
                 .placeholder("version", BatesMod.VERSION).build(), false);
         return 1;

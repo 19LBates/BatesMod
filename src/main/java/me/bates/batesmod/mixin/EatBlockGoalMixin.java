@@ -14,7 +14,6 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 @Mixin(EatBlockGoal.class)
 public abstract class EatBlockGoalMixin {
 
-
     @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;destroyBlock(Lnet/minecraft/core/BlockPos;Z)Z"))
     boolean bates$cancelDestroyBlockCall(Level instance, BlockPos blockPos, boolean b) {
         if (MobGriefOverrideHandler.isMobGriefEnabled(EntityType.SHEEP, (ServerLevel) instance)) {

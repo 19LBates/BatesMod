@@ -8,8 +8,17 @@ import java.util.*;
 
 public class TextTools {
 
-    private static final int HEX = 16;
+    private static final int HEX_RADIX = 16;
+
+    //For bit-shifting
+    private static final int RED_SHIFT = 16;
+    private static final int GREEN_SHIFT = 8;
     private static final int EIGHT_BIT_MASK = 0xFF;
+
+    //To remove start of tags
+    private static final int COLOR_TAG_LENGTH = 6;
+    private static final int LERP_TAG_LENGTH = 5;
+    private static final int GRADIENT_TAG_LENGTH = 9;
 
     private static final Map<String, String> PREDEFINED_COLORS = Map.ofEntries(
             Map.entry("black", "000000"),
@@ -64,14 +73,13 @@ public class TextTools {
     private interface Color {
     }
 
-    record SolidColor(int rgb) implements Color {
+    private record SolidColor(int rgb) implements Color {
     }
 
-    record Gradient(int[] rgb) implements Color {
+    private record Gradient(int[] rgb) implements Color {
     }
 
-    private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated,
-                         boolean copyable, Color color) {
+    private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated, boolean copyable, Color color) {
         public Style withBold(boolean v) {
             return new Style(v, italic, underline, strikethrough, obfuscated, copyable, color);
         }
@@ -150,19 +158,19 @@ public class TextTools {
                     stack.push(Objects.requireNonNull(current).withColor(new SolidColor(hexStringToInt(predefined_color))));
 
                 } else if (tag.startsWith("color:")) {
-                    int color = hexStringToInt(tag.substring(6));
+                    int color = hexStringToInt(tag.substring(COLOR_TAG_LENGTH));
                     stack.push(Objects.requireNonNull(current).withColor(new SolidColor(color)));
 
                 } else if (tag.startsWith("lerp:")) {
-                    //First two values are colors, third is amount to lerp
-                    String[] split = tag.substring(5).split(":");
+                    //First two values are colors (hence limit of 2 for color array); third is float for linear interpolation
+                    String[] split = tag.substring(LERP_TAG_LENGTH).split(":");
                     int[] colors = Arrays.stream(split).limit(2).mapToInt(TextTools::hexStringToInt).toArray();
                     float lerpAmount = Float.parseFloat(split[2]);
                     int color = lerp(colors[0], colors[1], lerpAmount);
                     stack.push(Objects.requireNonNull(current).withColor(new SolidColor(color)));
 
                 } else if (tag.startsWith("gradient:")) {
-                    int[] colors = Arrays.stream(tag.substring(9).split(":")).mapToInt(TextTools::hexStringToInt).toArray();
+                    int[] colors = Arrays.stream(tag.substring(GRADIENT_TAG_LENGTH).split(":")).mapToInt(TextTools::hexStringToInt).toArray();
                     stack.push(Objects.requireNonNull(current).withColor(new Gradient(colors)));
 
                 } else if (tag.equals("bold") || tag.equals("l")) {
@@ -184,12 +192,16 @@ public class TextTools {
                     stack.push(Objects.requireNonNull(current).withCopyable(true));
                 }
 
-                //Close tags
+                //Closing tags
+                //Limitation: currently closes the previous tag, no matter what the contents of the closing tag is
+                //Example: <bold>Bold</literally_anything> Not Bold
                 else if ((tag.startsWith("/") && stack.size() > 1)) {
                     stack.pop();
                 }
 
+                //Continue after the end of the tag
                 i = end + 1;
+
             } else {
                 buffer.append(c);
                 i++;
@@ -221,7 +233,7 @@ public class TextTools {
         if (style.color == null) {
             output = Component.literal(text);
         } else if (style.color instanceof SolidColor) {
-            output = colorComponent(text, ((SolidColor) style.color).rgb);
+            output = Component.literal(text).withStyle(s -> s.withColor(((SolidColor) style.color).rgb));
         } else {
             output = generateGradient(text, ((Gradient) style.color).rgb);
         }
@@ -263,39 +275,34 @@ public class TextTools {
         return output;
     }
 
-    private static MutableComponent colorComponent(String text, int color) {
-        if (text.isEmpty()) return Component.empty();
-        return Component.literal(text).withStyle(style -> style.withColor(color));
-    }
-
     private static int lerp(int color1, int color2, float t) {
-        int r1 = (color1 >> 16) & EIGHT_BIT_MASK;
-        int g1 = (color1 >> 8) & EIGHT_BIT_MASK;
+        int r1 = (color1 >> RED_SHIFT) & EIGHT_BIT_MASK;
+        int g1 = (color1 >> GREEN_SHIFT) & EIGHT_BIT_MASK;
         int b1 = color1 & EIGHT_BIT_MASK;
 
-        int r2 = (color2 >> 16) & EIGHT_BIT_MASK;
-        int g2 = (color2 >> 8) & EIGHT_BIT_MASK;
+        int r2 = (color2 >> RED_SHIFT) & EIGHT_BIT_MASK;
+        int g2 = (color2 >> GREEN_SHIFT) & EIGHT_BIT_MASK;
         int b2 = color2 & EIGHT_BIT_MASK;
 
         int r = (int) (r1 + (r2 - r1) * t);
         int g = (int) (g1 + (g2 - g1) * t);
         int b = (int) (b1 + (b2 - b1) * t);
 
-        return (r << 16) | (g << 8) | b;
+        return (r << RED_SHIFT) | (g << GREEN_SHIFT) | b;
     }
 
     private static int hexStringToInt(String s) {
         if (s.contains("#")) {
             s = s.substring(1);
         }
-        return Integer.parseInt(s, HEX);
+        return Integer.parseInt(s, HEX_RADIX);
     }
 
     private static String applyPlaceholders(String s, String[] placeholders, String[] replacements, boolean literal) {
         String out = s;
 
         if (placeholders.length != replacements.length) {
-            throw new IllegalArgumentException("Placeholders and replacement arrays don't match!");
+            throw new IllegalArgumentException("Placeholders and replacement arrays don't match in length!");
         }
 
         for (int i = 0; i < placeholders.length; i++) {

@@ -10,18 +10,21 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
+import java.util.UUID;
+
 @Mixin(ServerGamePacketListenerImpl.class)
-public abstract class ServerGamePacketListernerImplMixin {
+public abstract class ServerGamePacketListenerImplMixin {
     @Shadow
     public ServerPlayer player;
 
     @ModifyArg(method = "removePlayerFromWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/players/PlayerList;broadcastSystemMessage(Lnet/minecraft/network/chat/Component;Z)V"))
     private Component bates$replaceQuitMessage(Component component) {
         String name = player.getName().getString();
+        UUID uuid = player.getUUID();
         return TextTools.builder()
                 .input(ConfigManager.get().leaveMessage)
                 .placeholder("name", name)
-                .placeholder("display-name", ConfigManager.get().displayNames.getOrDefault(name, name))
+                .placeholder("display-name", ConfigManager.get().displayNames.getOrDefault(uuid, name))
                 .build();
     }
 }

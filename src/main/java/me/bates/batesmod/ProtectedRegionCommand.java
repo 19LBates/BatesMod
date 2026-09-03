@@ -16,7 +16,7 @@ import static net.minecraft.commands.Commands.literal;
 
 public class ProtectedRegionCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(literal("protected-region")
+        dispatcher.register(literal("protected_region")
                 .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_ADMIN))
 
                 .then(
@@ -61,7 +61,7 @@ public class ProtectedRegionCommand {
         BlockPos to = BlockPosArgument.getBlockPos(context, "to");
 
         if (ConfigManager.get().protectedRegions.stream().anyMatch(region -> region.getName().toLowerCase().equals(name))) {
-            context.getSource().sendSystemMessage(TextTools.builder().input("[%bates%] <c>A Protected Region called \"%name%\" already exists!</c>")
+            context.getSource().sendSystemMessage(TextTools.builder().input("%bates% <c>A Protected Region called \"%name%\" already exists!</c>")
                     .placeholder("bates", ConfigManager.get().batesModGradient)
                     .placeholder("name", name)
                     .build()
@@ -80,7 +80,7 @@ public class ProtectedRegionCommand {
                 )
         );
         ConfigManager.save();
-        context.getSource().sendSystemMessage(TextTools.builder().input("[%bates%] Protected Region \"%name%\" added.")
+        context.getSource().sendSystemMessage(TextTools.builder().input("%bates% Protected Region \"%name%\" added.")
                 .placeholder("bates", ConfigManager.get().batesModGradient)
                 .placeholder("name", name)
                 .build()
@@ -93,7 +93,7 @@ public class ProtectedRegionCommand {
         Region region = ConfigManager.get().protectedRegions.stream().filter(r -> r.getName().equals(name)).findFirst().orElse(null);
 
         if (region == null) {
-            context.getSource().sendSystemMessage(TextTools.builder().input("[%bates%] <c>No Protected Region with name \"%name%\" exists!</c>")
+            context.getSource().sendSystemMessage(TextTools.builder().input("%bates% <c>No Protected Region with name \"%name%\" exists!</c>")
                     .placeholder("bates", ConfigManager.get().batesModGradient)
                     .placeholder("name", name)
                     .build()
@@ -103,7 +103,7 @@ public class ProtectedRegionCommand {
 
         ConfigManager.get().protectedRegions.remove(region);
         ConfigManager.save();
-        context.getSource().sendSystemMessage(TextTools.builder().input("[%bates%] Protected Region \"%name%\" removed.")
+        context.getSource().sendSystemMessage(TextTools.builder().input("%bates% Protected Region \"%name%\" removed.")
                 .placeholder("bates", ConfigManager.get().batesModGradient)
                 .placeholder("name", name)
                 .build()
@@ -116,7 +116,7 @@ public class ProtectedRegionCommand {
         Region region = ConfigManager.get().protectedRegions.stream().filter(r -> r.getName().equals(name)).findFirst().orElse(null);
 
         if (region == null) {
-            context.getSource().sendSystemMessage(TextTools.builder().input("[%bates%] <c>No Protected Region with name \"%name%\" exists!</c>")
+            context.getSource().sendSystemMessage(TextTools.builder().input("%bates% <c>No Protected Region with name \"%name%\" exists!</c>")
                     .placeholder("bates", ConfigManager.get().batesModGradient)
                     .placeholder("name", name)
                     .build()
@@ -124,7 +124,7 @@ public class ProtectedRegionCommand {
             return 0;
         }
 
-        context.getSource().sendSystemMessage(TextTools.builder().input("[%bates%] Protected Region \"%name%\": From <b>%x1% %y1% %z1%</b>, To <e>%x2% %y2% %z2%</e>")
+        context.getSource().sendSystemMessage(TextTools.builder().input("%bates% Protected Region \"%name%\": From <b>%x1% %y1% %z1%</b>, To <e>%x2% %y2% %z2%</e>")
                 .placeholder("bates", ConfigManager.get().batesModGradient)
                 .placeholder("name", name)
                 .placeholder("x1", String.valueOf(region.getLowerX()))

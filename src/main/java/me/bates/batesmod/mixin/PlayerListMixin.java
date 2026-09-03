@@ -15,24 +15,27 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.UUID;
+
 @Mixin(PlayerList.class)
 public abstract class PlayerListMixin {
 
     @Unique
-    private ServerPlayer bates$currentPlayer;
+    private ServerPlayer player;
 
     @Inject(method = "placeNewPlayer", at = @At("HEAD"))
     public void onPlayerConnect(Connection connection, ServerPlayer player, CommonListenerCookie cookie, CallbackInfo ci) {
-        bates$currentPlayer = player;
+        this.player = player;
     }
 
     @ModifyArg(method = "placeNewPlayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/players/PlayerList;broadcastSystemMessage(Lnet/minecraft/network/chat/Component;Z)V"))
     private Component bates$replaceJoinMessage(Component component) {
-        String name = bates$currentPlayer.getName().getString();
+        String name = player.getName().getString();
+        UUID uuid = player.getUUID();
         return TextTools.builder()
                 .input(ConfigManager.get().joinMessage)
                 .placeholder("name", name)
-                .placeholder("display-name", ConfigManager.get().displayNames.getOrDefault(name, name))
+                .placeholder("display-name", ConfigManager.get().displayNames.getOrDefault(uuid, name))
                 .build();
     }
 
