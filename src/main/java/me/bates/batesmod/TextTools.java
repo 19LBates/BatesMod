@@ -15,11 +15,6 @@ public class TextTools {
     private static final int GREEN_SHIFT = 8;
     private static final int EIGHT_BIT_MASK = 0xFF;
 
-    //To remove start of tags
-    private static final int COLOR_TAG_LENGTH = 6;
-    private static final int LERP_TAG_LENGTH = 5;
-    private static final int GRADIENT_TAG_LENGTH = 9;
-
     private static final Map<String, String> PREDEFINED_COLORS = Map.ofEntries(
             Map.entry("black", "000000"),
             Map.entry("0", "000000"),
@@ -70,6 +65,37 @@ public class TextTools {
             Map.entry("f", "FFFFFF")
     );
 
+    private static final Tag BOLD = new BoldTag();
+    private static final Tag ITALIC = new ItalicTag();
+    private static final Tag UNDERLINE = new UnderlineTag();
+    private static final Tag STRIKETHROUGH = new StrikethroughTag();
+    private static final Tag OBFUSCATED = new ObfuscatedTag();
+    private static final Tag COPYABLE = new CopyableTag();
+
+    private static final Map<String, Tag> TAGS = Map.ofEntries(
+            Map.entry("color", new ColorTag()),
+            Map.entry("lerp", new LerpTag()),
+            Map.entry("gradient", new GradientTag()),
+
+            Map.entry("bold", BOLD),
+            Map.entry("l", BOLD),
+
+            Map.entry("italic", ITALIC),
+            Map.entry("o", ITALIC),
+
+            Map.entry("underline", UNDERLINE),
+            Map.entry("n", UNDERLINE),
+
+            Map.entry("strikethrough", STRIKETHROUGH),
+            Map.entry("m", STRIKETHROUGH),
+
+            Map.entry("obfuscated", OBFUSCATED),
+            Map.entry("k", OBFUSCATED),
+
+            Map.entry("copyable", COPYABLE),
+            Map.entry("copy", COPYABLE)
+    );
+
     private interface Color {
     }
 
@@ -79,7 +105,82 @@ public class TextTools {
     private record Gradient(int[] rgb) implements Color {
     }
 
-    private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated, boolean copyable, Color color) {
+    private interface Tag {
+        Style apply(String argument, Style current);
+    }
+
+    private static class ColorTag implements Tag {
+        @Override
+        public Style apply(String argument, Style current) {
+            int color = hexStringToInt(argument);
+            return Objects.requireNonNull(current).withColor(new SolidColor(color));
+        }
+    }
+
+    private static class LerpTag implements Tag {
+        @Override
+        public Style apply(String argument, Style current) {
+            //First two values are colors (hence limit of 2 for color array); third is float for linear interpolation
+            String[] split = argument.split(":");
+            int[] colors = Arrays.stream(split).limit(2).mapToInt(TextTools::hexStringToInt).toArray();
+            float lerpAmount = Float.parseFloat(split[2]);
+            int color = lerp(colors[0], colors[1], lerpAmount);
+            return Objects.requireNonNull(current).withColor(new SolidColor(color));
+        }
+    }
+
+    private static class GradientTag implements Tag {
+        @Override
+        public Style apply(String argument, Style current) {
+            int[] colors = Arrays.stream(argument.split(":")).mapToInt(TextTools::hexStringToInt).toArray();
+            return Objects.requireNonNull(current).withColor(new Gradient(colors));
+        }
+    }
+
+    private static class BoldTag implements Tag {
+        @Override
+        public Style apply(String argument, Style current) {
+            return Objects.requireNonNull(current).withBold(true);
+        }
+    }
+
+    private static class ItalicTag implements Tag {
+        @Override
+        public Style apply(String argument, Style current) {
+            return Objects.requireNonNull(current).withItalic(true);
+        }
+    }
+
+    private static class UnderlineTag implements Tag {
+        @Override
+        public Style apply(String argument, Style current) {
+            return Objects.requireNonNull(current).withUnderline(true);
+        }
+    }
+
+    private static class StrikethroughTag implements Tag {
+        @Override
+        public Style apply(String argument, Style current) {
+            return Objects.requireNonNull(current).withStrikethrough(true);
+        }
+    }
+
+    private static class ObfuscatedTag implements Tag {
+        @Override
+        public Style apply(String argument, Style current) {
+            return Objects.requireNonNull(current).withObfuscated(true);
+        }
+    }
+
+    private static class CopyableTag implements Tag {
+        @Override
+        public Style apply(String argument, Style current) {
+            return Objects.requireNonNull(current).withCopyable(true);
+        }
+    }
+
+    private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated,
+                         boolean copyable, Color color) {
         public Style withBold(boolean v) {
             return new Style(v, italic, underline, strikethrough, obfuscated, copyable, color);
         }
@@ -148,56 +249,32 @@ public class TextTools {
                 }
                 if (end == -1) break;
 
-                String tag = s.substring(i + 1, end);
+                String tagString = s.substring(i + 1, end);
 
                 Style current = stack.peek();
 
-                //Open tags
-                String predefined_color = PREDEFINED_COLORS.get(tag);
-                if (predefined_color != null) {
-                    stack.push(Objects.requireNonNull(current).withColor(new SolidColor(hexStringToInt(predefined_color))));
+                //Handle tags
+                String predefinedColor = PREDEFINED_COLORS.get(tagString);
+                if (predefinedColor != null) {
+                    stack.push(Objects.requireNonNull(current).withColor(new SolidColor(hexStringToInt(predefinedColor))));
 
-                } else if (tag.startsWith("color:")) {
-                    int color = hexStringToInt(tag.substring(COLOR_TAG_LENGTH));
-                    stack.push(Objects.requireNonNull(current).withColor(new SolidColor(color)));
-
-                } else if (tag.startsWith("lerp:")) {
-                    //First two values are colors (hence limit of 2 for color array); third is float for linear interpolation
-                    String[] split = tag.substring(LERP_TAG_LENGTH).split(":");
-                    int[] colors = Arrays.stream(split).limit(2).mapToInt(TextTools::hexStringToInt).toArray();
-                    float lerpAmount = Float.parseFloat(split[2]);
-                    int color = lerp(colors[0], colors[1], lerpAmount);
-                    stack.push(Objects.requireNonNull(current).withColor(new SolidColor(color)));
-
-                } else if (tag.startsWith("gradient:")) {
-                    int[] colors = Arrays.stream(tag.substring(GRADIENT_TAG_LENGTH).split(":")).mapToInt(TextTools::hexStringToInt).toArray();
-                    stack.push(Objects.requireNonNull(current).withColor(new Gradient(colors)));
-
-                } else if (tag.equals("bold") || tag.equals("l")) {
-                    stack.push(Objects.requireNonNull(current).withBold(true));
-
-                } else if (tag.equals("italic") || tag.equals("o") || tag.equals("i")) {
-                    stack.push(Objects.requireNonNull(current).withItalic(true));
-
-                } else if (tag.equals("underline") || tag.equals("n") || tag.equals("u")) {
-                    stack.push(Objects.requireNonNull(current).withUnderline(true));
-
-                } else if (tag.equals("strikethrough") || tag.equals("m") || tag.equals("s")) {
-                    stack.push(Objects.requireNonNull(current).withStrikethrough(true));
-
-                } else if (tag.equals("obfuscated") || tag.equals("k")) {
-                    stack.push(Objects.requireNonNull(current).withObfuscated(true));
-
-                } else if (tag.equals("copyable") || tag.equals("copy")) {
-                    stack.push(Objects.requireNonNull(current).withCopyable(true));
-                }
-
-                //Closing tags
-                //Limitation: currently closes the previous tag, no matter what the contents of the closing tag is
-                //Example: <bold>Bold</literally_anything> Not Bold
-                else if ((tag.startsWith("/") && stack.size() > 1)) {
+                } else if ((tagString.startsWith("/") && stack.size() > 1)) {
+                    //Closing tags
+                    //Limitation: currently closes the previous tag, no matter what the contents of the closing tag is
+                    //Example: <bold>Bold</literally_anything> Not Bold
                     stack.pop();
+
+                } else {
+                    int colonIndex = tagString.indexOf(':');
+                    boolean hasColon = colonIndex != -1;
+
+                    String tagName = hasColon ? tagString.substring(0, colonIndex) : tagString;
+                    String tagArgs = hasColon ? tagString.substring(colonIndex + 1) : "";
+
+                    Tag tag = TAGS.get(tagName);
+                    if (tag != null) stack.push(tag.apply(tagArgs, current));
                 }
+
 
                 //Continue after the end of the tag
                 i = end + 1;
