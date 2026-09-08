@@ -15,85 +15,127 @@ public class TextTools {
     private static final int GREEN_SHIFT = 8;
     private static final int EIGHT_BIT_MASK = 0xFF;
 
-    private static final Map<String, String> PREDEFINED_COLORS = Map.ofEntries(
-            Map.entry("black", "000000"),
-            Map.entry("0", "000000"),
+    //Minecraft default colors
+    private static final int BLACK = hexStringToInt("000000");
+    private static final int DARK_BLUE = hexStringToInt("0000AA");
+    private static final int DARK_GREEN = hexStringToInt("00AA00");
+    private static final int DARK_AQUA = hexStringToInt("00AAAA");
+    private static final int DARK_RED = hexStringToInt("AA0000");
+    private static final int DARK_PURPLE = hexStringToInt("AA00AA");
+    private static final int GOLD = hexStringToInt("FFAA00");
+    private static final int GRAY = hexStringToInt("AAAAAA");
+    private static final int DARK_GRAY = hexStringToInt("555555");
+    private static final int BLUE = hexStringToInt("5555FF");
+    private static final int GREEN = hexStringToInt("55FF55");
+    private static final int AQUA = hexStringToInt("55FFFF");
+    private static final int RED = hexStringToInt("FF5555");
+    private static final int LIGHT_PURPLE = hexStringToInt("FF55FF");
+    private static final int YELLOW = hexStringToInt("FFFF55");
+    private static final int WHITE = hexStringToInt("FFFFFF");
 
-            Map.entry("dark_blue", "0000AA"),
-            Map.entry("1", "0000AA"),
+    private static final Map<String, Integer> PREDEFINED_COLORS = Map.ofEntries(
+            Map.entry("black", BLACK),
+            Map.entry("0", BLACK),
 
-            Map.entry("dark_green", "00AA00"),
-            Map.entry("2", "00AA00"),
+            Map.entry("dark_blue", DARK_BLUE),
+            Map.entry("1", DARK_BLUE),
 
-            Map.entry("dark_aqua", "00AAAA"),
-            Map.entry("3", "00AAAA"),
+            Map.entry("dark_green", DARK_GREEN),
+            Map.entry("2", DARK_GREEN),
 
-            Map.entry("dark_red", "AA0000"),
-            Map.entry("4", "AA0000"),
+            Map.entry("dark_aqua", DARK_AQUA),
+            Map.entry("3", DARK_AQUA),
 
-            Map.entry("dark_purple", "AA00AA"),
-            Map.entry("5", "AA00AA"),
+            Map.entry("dark_red", DARK_RED),
+            Map.entry("4", DARK_RED),
 
-            Map.entry("gold", "FFAA00"),
-            Map.entry("6", "FFAA00"),
+            Map.entry("dark_purple", DARK_PURPLE),
+            Map.entry("5", DARK_PURPLE),
 
-            Map.entry("gray", "AAAAAA"),
-            Map.entry("7", "AAAAAA"),
+            Map.entry("gold", GOLD),
+            Map.entry("6", GOLD),
 
-            Map.entry("dark_gray", "555555"),
-            Map.entry("8", "555555"),
+            Map.entry("gray", GRAY),
+            Map.entry("7", GRAY),
 
-            Map.entry("blue", "5555FF"),
-            Map.entry("9", "5555FF"),
+            Map.entry("dark_gray", DARK_GRAY),
+            Map.entry("8", DARK_GRAY),
 
-            Map.entry("green", "55FF55"),
-            Map.entry("a", "55FF55"),
+            Map.entry("blue", BLUE),
+            Map.entry("9", BLUE),
 
-            Map.entry("aqua", "55FFFF"),
-            Map.entry("b", "55FFFF"),
+            Map.entry("green", GREEN),
+            Map.entry("a", GREEN),
 
-            Map.entry("red", "FF5555"),
-            Map.entry("c", "FF5555"),
+            Map.entry("aqua", AQUA),
+            Map.entry("b", AQUA),
 
-            Map.entry("light_purple", "FF55FF"),
-            Map.entry("d", "FF55FF"),
+            Map.entry("red", RED),
+            Map.entry("c", RED),
 
-            Map.entry("yellow", "FFFF55"),
-            Map.entry("e", "FFFF55"),
+            Map.entry("light_purple", LIGHT_PURPLE),
+            Map.entry("d", LIGHT_PURPLE),
 
-            Map.entry("white", "FFFFFF"),
-            Map.entry("f", "FFFFFF")
+            Map.entry("yellow", YELLOW),
+            Map.entry("e", YELLOW),
+
+            Map.entry("white", WHITE),
+            Map.entry("f", WHITE)
     );
 
-    private static final Tag BOLD = new BoldTag();
-    private static final Tag ITALIC = new ItalicTag();
-    private static final Tag UNDERLINE = new UnderlineTag();
-    private static final Tag STRIKETHROUGH = new StrikethroughTag();
-    private static final Tag OBFUSCATED = new ObfuscatedTag();
-    private static final Tag COPYABLE = new CopyableTag();
+    @FunctionalInterface
+    private interface Tag {
+        Style apply(String argument, Style current);
+    }
+
+    private static final Tag COLOR_TAG = (argument, current) -> {
+        int color = hexStringToInt(argument);
+        return current.withColor(new SolidColor(color));
+    };
+
+    private static final Tag LERP_TAG = (argument, current) -> {
+        //First two values are colors (hence limit of 2 for color array); third is float for linear interpolation
+        String[] split = argument.split(":");
+        int[] colors = Arrays.stream(split).limit(2).mapToInt(TextTools::hexStringToInt).toArray();
+        float lerpAmount = Float.parseFloat(split[2]);
+        int color = lerp(colors[0], colors[1], lerpAmount);
+        return current.withColor(new SolidColor(color));
+    };
+
+    private static final Tag GRADIENT_TAG = (argument, current) -> {
+        int[] colors = Arrays.stream(argument.split(":")).mapToInt(TextTools::hexStringToInt).toArray();
+        return current.withColor(new Gradient(colors));
+    };
+
+    private static final Tag BOLD_TAG = (_, current) -> current.withBold(true);
+    private static final Tag ITALIC_TAG = (_, current) -> current.withItalic(true);
+    private static final Tag UNDERLINE_TAG = (_, current) -> current.withUnderline(true);
+    private static final Tag STRIKETHROUGH_TAG = (_, current) -> current.withStrikethrough(true);
+    private static final Tag OBFUSCATED_TAG = (_, current) -> current.withObfuscated(true);
+    private static final Tag COPYABLE_TAG = (_, current) -> current.withCopyable(true);
 
     private static final Map<String, Tag> TAGS = Map.ofEntries(
-            Map.entry("color", new ColorTag()),
-            Map.entry("lerp", new LerpTag()),
-            Map.entry("gradient", new GradientTag()),
+            Map.entry("color", COLOR_TAG),
+            Map.entry("lerp", LERP_TAG),
+            Map.entry("gradient", GRADIENT_TAG),
 
-            Map.entry("bold", BOLD),
-            Map.entry("l", BOLD),
+            Map.entry("bold", BOLD_TAG),
+            Map.entry("l", BOLD_TAG),
 
-            Map.entry("italic", ITALIC),
-            Map.entry("o", ITALIC),
+            Map.entry("italic", ITALIC_TAG),
+            Map.entry("o", ITALIC_TAG),
 
-            Map.entry("underline", UNDERLINE),
-            Map.entry("n", UNDERLINE),
+            Map.entry("underline", UNDERLINE_TAG),
+            Map.entry("n", UNDERLINE_TAG),
 
-            Map.entry("strikethrough", STRIKETHROUGH),
-            Map.entry("m", STRIKETHROUGH),
+            Map.entry("strikethrough", STRIKETHROUGH_TAG),
+            Map.entry("m", STRIKETHROUGH_TAG),
 
-            Map.entry("obfuscated", OBFUSCATED),
-            Map.entry("k", OBFUSCATED),
+            Map.entry("obfuscated", OBFUSCATED_TAG),
+            Map.entry("k", OBFUSCATED_TAG),
 
-            Map.entry("copyable", COPYABLE),
-            Map.entry("copy", COPYABLE)
+            Map.entry("copyable", COPYABLE_TAG),
+            Map.entry("copy", COPYABLE_TAG)
     );
 
     private interface Color {
@@ -103,80 +145,6 @@ public class TextTools {
     }
 
     private record Gradient(int[] rgb) implements Color {
-    }
-
-    private interface Tag {
-        Style apply(String argument, Style current);
-    }
-
-    private static class ColorTag implements Tag {
-        @Override
-        public Style apply(String argument, Style current) {
-            int color = hexStringToInt(argument);
-            return Objects.requireNonNull(current).withColor(new SolidColor(color));
-        }
-    }
-
-    private static class LerpTag implements Tag {
-        @Override
-        public Style apply(String argument, Style current) {
-            //First two values are colors (hence limit of 2 for color array); third is float for linear interpolation
-            String[] split = argument.split(":");
-            int[] colors = Arrays.stream(split).limit(2).mapToInt(TextTools::hexStringToInt).toArray();
-            float lerpAmount = Float.parseFloat(split[2]);
-            int color = lerp(colors[0], colors[1], lerpAmount);
-            return Objects.requireNonNull(current).withColor(new SolidColor(color));
-        }
-    }
-
-    private static class GradientTag implements Tag {
-        @Override
-        public Style apply(String argument, Style current) {
-            int[] colors = Arrays.stream(argument.split(":")).mapToInt(TextTools::hexStringToInt).toArray();
-            return Objects.requireNonNull(current).withColor(new Gradient(colors));
-        }
-    }
-
-    private static class BoldTag implements Tag {
-        @Override
-        public Style apply(String argument, Style current) {
-            return Objects.requireNonNull(current).withBold(true);
-        }
-    }
-
-    private static class ItalicTag implements Tag {
-        @Override
-        public Style apply(String argument, Style current) {
-            return Objects.requireNonNull(current).withItalic(true);
-        }
-    }
-
-    private static class UnderlineTag implements Tag {
-        @Override
-        public Style apply(String argument, Style current) {
-            return Objects.requireNonNull(current).withUnderline(true);
-        }
-    }
-
-    private static class StrikethroughTag implements Tag {
-        @Override
-        public Style apply(String argument, Style current) {
-            return Objects.requireNonNull(current).withStrikethrough(true);
-        }
-    }
-
-    private static class ObfuscatedTag implements Tag {
-        @Override
-        public Style apply(String argument, Style current) {
-            return Objects.requireNonNull(current).withObfuscated(true);
-        }
-    }
-
-    private static class CopyableTag implements Tag {
-        @Override
-        public Style apply(String argument, Style current) {
-            return Objects.requireNonNull(current).withCopyable(true);
-        }
     }
 
     private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated,
@@ -210,6 +178,9 @@ public class TextTools {
         }
     }
 
+    private record Segment(String text, Style style) {
+    }
+
     public static MutableComponent deserialize(String s, String[] placeholders, String[] replacements) {
         return deserialize(applyPlaceholders(s, placeholders, replacements, false));
     }
@@ -221,7 +192,7 @@ public class TextTools {
     public static MutableComponent deserialize(String s) {
         Deque<Style> stack = new ArrayDeque<>();
         StringBuilder buffer = new StringBuilder();
-        MutableComponent result = Component.empty();
+        List<Segment> segments = new ArrayList<>();
 
         stack.push(new Style(false, false, false, false, false, false, null));
 
@@ -237,7 +208,7 @@ public class TextTools {
                 continue;
             }
             if (c == '<') {
-                flush(stack, buffer, result);
+                flush(stack, buffer, segments);
 
                 //Start searching for '>' after '<'
                 int end = -1;
@@ -254,9 +225,9 @@ public class TextTools {
                 Style current = stack.peek();
 
                 //Handle tags
-                String predefinedColor = PREDEFINED_COLORS.get(tagString);
+                Integer predefinedColor = PREDEFINED_COLORS.get(tagString);
                 if (predefinedColor != null) {
-                    stack.push(Objects.requireNonNull(current).withColor(new SolidColor(hexStringToInt(predefinedColor))));
+                    stack.push(Objects.requireNonNull(current).withColor(new SolidColor(predefinedColor)));
 
                 } else if ((tagString.startsWith("/") && stack.size() > 1)) {
                     //Closing tags
@@ -285,35 +256,70 @@ public class TextTools {
             }
         }
 
-        flush(stack, buffer, result);
-        return result;
+        flush(stack, buffer, segments);
+        return render(segments.toArray(Segment[]::new));
     }
 
     public static TextToolsBuilder builder() {
         return new TextToolsBuilder();
     }
 
-    private static void flush(Deque<Style> stack, StringBuilder buffer, MutableComponent result) {
-        if (buffer.isEmpty()) return;
-
+    private static void flush(Deque<Style> stack, StringBuilder buffer, List<Segment> segments) {
         String text = buffer.toString();
         buffer.setLength(0);
-
-        if (stack.isEmpty()) {
-            result.append(Component.literal(text));
-            return;
-        }
-
         Style style = stack.peek();
+        segments.add(new Segment(text, style));
+    }
+
+    private static MutableComponent render(Segment[] segments) {
+        MutableComponent output = Component.literal("");
+        for (int i = 0; i < segments.length; i++) {
+            Segment segment = segments[i];
+
+            if (segment.style.color instanceof Gradient gradient) {
+                //Keep going until a segment is found without the same gradient, or until end is reached
+                int firstSegmentIndex = i;
+                int totalLength = segment.text.length();
+
+                while (i + 1 < segments.length) {
+                    Segment next = segments[i + 1];
+                    if (next.style.color != gradient) break;
+                    totalLength += next.text.length();
+                    i++;
+                }
+
+                int currentStartIndex = 0;
+
+                for (int j = firstSegmentIndex; j <= i; j++) {
+                    Segment gradientSegment = segments[j];
+                    output.append(renderSegment(gradientSegment, currentStartIndex, totalLength));
+                    currentStartIndex += gradientSegment.text.length();
+                }
+
+                continue;
+            }
+
+            output.append(renderSegment(segment));
+        }
+        return output;
+    }
+
+    private static MutableComponent renderSegment(Segment segment) {
+        //startIndex and totalLength are only used for gradients
+        return renderSegment(segment, 0, 0);
+    }
+
+    private static MutableComponent renderSegment(Segment segment, int startIndex, int totalLength) {
+        String text = segment.text;
+        Style style = segment.style;
         MutableComponent output;
 
-        if (style.color == null) {
-            output = Component.literal(text);
-        } else if (style.color instanceof SolidColor) {
-            output = Component.literal(text).withStyle(s -> s.withColor(((SolidColor) style.color).rgb));
-        } else {
-            output = generateGradient(text, ((Gradient) style.color).rgb);
-        }
+        output = switch (style.color) {
+            case SolidColor(int rgb) -> Component.literal(text).withColor(rgb);
+            case Gradient(int[] rgb) -> generateGradient(text, rgb, startIndex, totalLength);
+            case null -> Component.literal(text);
+            default -> throw new IllegalStateException("Unexpected value: " + style.color);
+        };
 
         output.withStyle(s -> {
             if (style.bold) s = s.withBold(true);
@@ -325,11 +331,11 @@ public class TextTools {
             return s;
         });
 
-        result.append(output);
+        return output;
     }
 
-    private static MutableComponent generateGradient(String text, int[] colors) {
-        if (text.length() < 2) {
+    private static MutableComponent generateGradient(String text, int[] colors, int startIndex, int totalLength) {
+        if (totalLength < 2) {
             throw new IllegalArgumentException("Component too short! At least 2 characters needed.");
         }
 
@@ -338,11 +344,11 @@ public class TextTools {
         }
 
         MutableComponent output = Component.empty();
-        int len = text.length();
         int numSegments = colors.length - 1;
 
-        for (int i = 0; i < len; i++) {
-            float t = i / (float) (len - 1);
+        for (int i = 0; i < text.length(); i++) {
+            int overallIndex = i + startIndex;
+            float t = overallIndex / (float) (totalLength - 1);
             int segIndex = Math.min((int) (t * numSegments), numSegments - 1);
             float localT = t * numSegments - segIndex;
             int curColor = lerp(colors[segIndex], colors[segIndex + 1], localT);
