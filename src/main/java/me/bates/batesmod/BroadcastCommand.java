@@ -21,14 +21,14 @@ public class BroadcastCommand {
 
     private static int noArg(CommandContext<?> context) {
         CommandSourceStack source = (CommandSourceStack) context.getSource();
-        source.sendSuccess(() -> TextTools.deserialize("<color:#ff5555>No string to format provided!</color>"), false);
+        source.sendSuccess(() -> TextTools.builder().input("<color:#ff5555>No string to format provided!</color>").build(), false);
         return 1;
     }
 
     private static int execute(CommandContext<?> context) {
         String value = StringArgumentType.getString(context, "value");
         CommandSourceStack source = (CommandSourceStack) context.getSource();
-        source.getServer().getPlayerList().broadcastSystemMessage(TextTools.deserialize(value), false);
+        source.getServer().getPlayerList().broadcastSystemMessage(TextTools.builder().input(value).build(), false);
         return 1;
     }
 }

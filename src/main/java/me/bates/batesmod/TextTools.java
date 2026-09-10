@@ -6,6 +6,16 @@ import net.minecraft.network.chat.MutableComponent;
 
 import java.util.*;
 
+/**
+ * {@code TextTools} is a utility class for deserializing
+ * input markup code into a formatted {@link MutableComponent}, using the {@code deserialize} method.
+ * Similar to MiniMessage formatting, this class accepts input in the form of tags such as
+ * {@code <bold>text</bold>} and {@code <color:#abcdef>text</color>}.
+ *
+ * <p>The builder is exposed through the {@link TextTools#builder()} method.
+ *
+ * @author Lucas Bates
+ */
 public class TextTools {
 
     private static final int HEX_RADIX = 16;
@@ -15,128 +25,86 @@ public class TextTools {
     private static final int GREEN_SHIFT = 8;
     private static final int EIGHT_BIT_MASK = 0xFF;
 
-    //Minecraft default colors
-    private static final int BLACK = hexStringToInt("000000");
-    private static final int DARK_BLUE = hexStringToInt("0000AA");
-    private static final int DARK_GREEN = hexStringToInt("00AA00");
-    private static final int DARK_AQUA = hexStringToInt("00AAAA");
-    private static final int DARK_RED = hexStringToInt("AA0000");
-    private static final int DARK_PURPLE = hexStringToInt("AA00AA");
-    private static final int GOLD = hexStringToInt("FFAA00");
-    private static final int GRAY = hexStringToInt("AAAAAA");
-    private static final int DARK_GRAY = hexStringToInt("555555");
-    private static final int BLUE = hexStringToInt("5555FF");
-    private static final int GREEN = hexStringToInt("55FF55");
-    private static final int AQUA = hexStringToInt("55FFFF");
-    private static final int RED = hexStringToInt("FF5555");
-    private static final int LIGHT_PURPLE = hexStringToInt("FF55FF");
-    private static final int YELLOW = hexStringToInt("FFFF55");
-    private static final int WHITE = hexStringToInt("FFFFFF");
+    public static InputRequired builder() {
+        return new Builder();
+    }
 
-    private static final Map<String, Integer> PREDEFINED_COLORS = Map.ofEntries(
-            Map.entry("black", BLACK),
-            Map.entry("0", BLACK),
+    /**
+     * The initial state of the {@link Builder}.
+     * The {@link InputRequired#input} method is mandatory.
+     */
+    public interface InputRequired {
+        InputReceived input(String input);
+    }
 
-            Map.entry("dark_blue", DARK_BLUE),
-            Map.entry("1", DARK_BLUE),
+    /**
+     * The state of {@link Builder} after receiving an input.
+     */
+    public interface InputReceived {
+        InputReceived placeholder(String placeholder, String replacement);
 
-            Map.entry("dark_green", DARK_GREEN),
-            Map.entry("2", DARK_GREEN),
+        InputReceived placeholder(String placeholder, String replacement, boolean literal);
 
-            Map.entry("dark_aqua", DARK_AQUA),
-            Map.entry("3", DARK_AQUA),
+        MutableComponent build();
+    }
 
-            Map.entry("dark_red", DARK_RED),
-            Map.entry("4", DARK_RED),
+    /**
+     * The {@code TextTools.Builder} class is a builder for {@link TextTools}.
+     * It provides a more readable and less error-prone way of
+     * using {@link TextTools}, helping to prevent common errors such as mismatches
+     * between the number of placeholders and the number of replacements.
+     */
+    private static final class Builder implements InputRequired, InputReceived {
 
-            Map.entry("dark_purple", DARK_PURPLE),
-            Map.entry("5", DARK_PURPLE),
+        private String input;
 
-            Map.entry("gold", GOLD),
-            Map.entry("6", GOLD),
+        private final List<String> placeholders = new ArrayList<>();
+        private final List<String> replacements = new ArrayList<>();
+        private final List<String> literalPlaceholders = new ArrayList<>();
+        private final List<String> literalReplacements = new ArrayList<>();
 
-            Map.entry("gray", GRAY),
-            Map.entry("7", GRAY),
+        @Override
+        public InputReceived input(String input) {
+            this.input = Objects.requireNonNull(input, "Input cannot be null");
+            return this;
+        }
 
-            Map.entry("dark_gray", DARK_GRAY),
-            Map.entry("8", DARK_GRAY),
+        @Override
+        public InputReceived placeholder(String placeholder, String replacement) {
+            placeholders.add(placeholder);
+            replacements.add(replacement);
+            return this;
+        }
 
-            Map.entry("blue", BLUE),
-            Map.entry("9", BLUE),
+        @Override
+        public InputReceived placeholder(String placeholder, String replacement, boolean literal) {
+            if (literal) {
+                literalPlaceholders.add(placeholder);
+                literalReplacements.add(replacement);
+                return this;
+            }
+            placeholders.add(placeholder);
+            replacements.add(replacement);
+            return this;
+        }
 
-            Map.entry("green", GREEN),
-            Map.entry("a", GREEN),
+        @Override
+        public MutableComponent build() {
+            return TextTools.deserialize(
+                    input,
+                    placeholders.toArray(String[]::new),
+                    replacements.toArray(String[]::new),
+                    literalPlaceholders.toArray(String[]::new),
+                    literalReplacements.toArray(String[]::new)
+            );
+        }
 
-            Map.entry("aqua", AQUA),
-            Map.entry("b", AQUA),
-
-            Map.entry("red", RED),
-            Map.entry("c", RED),
-
-            Map.entry("light_purple", LIGHT_PURPLE),
-            Map.entry("d", LIGHT_PURPLE),
-
-            Map.entry("yellow", YELLOW),
-            Map.entry("e", YELLOW),
-
-            Map.entry("white", WHITE),
-            Map.entry("f", WHITE)
-    );
+    }
 
     @FunctionalInterface
     private interface Tag {
         Style apply(String argument, Style current);
     }
-
-    private static final Tag COLOR_TAG = (argument, current) -> {
-        int color = hexStringToInt(argument);
-        return current.withColor(new SolidColor(color));
-    };
-
-    private static final Tag LERP_TAG = (argument, current) -> {
-        //First two values are colors (hence limit of 2 for color array); third is float for linear interpolation
-        String[] split = argument.split(":");
-        int[] colors = Arrays.stream(split).limit(2).mapToInt(TextTools::hexStringToInt).toArray();
-        float lerpAmount = Float.parseFloat(split[2]);
-        int color = lerp(colors[0], colors[1], lerpAmount);
-        return current.withColor(new SolidColor(color));
-    };
-
-    private static final Tag GRADIENT_TAG = (argument, current) -> {
-        int[] colors = Arrays.stream(argument.split(":")).mapToInt(TextTools::hexStringToInt).toArray();
-        return current.withColor(new Gradient(colors));
-    };
-
-    private static final Tag BOLD_TAG = (_, current) -> current.withBold(true);
-    private static final Tag ITALIC_TAG = (_, current) -> current.withItalic(true);
-    private static final Tag UNDERLINE_TAG = (_, current) -> current.withUnderline(true);
-    private static final Tag STRIKETHROUGH_TAG = (_, current) -> current.withStrikethrough(true);
-    private static final Tag OBFUSCATED_TAG = (_, current) -> current.withObfuscated(true);
-    private static final Tag COPYABLE_TAG = (_, current) -> current.withCopyable(true);
-
-    private static final Map<String, Tag> TAGS = Map.ofEntries(
-            Map.entry("color", COLOR_TAG),
-            Map.entry("lerp", LERP_TAG),
-            Map.entry("gradient", GRADIENT_TAG),
-
-            Map.entry("bold", BOLD_TAG),
-            Map.entry("l", BOLD_TAG),
-
-            Map.entry("italic", ITALIC_TAG),
-            Map.entry("o", ITALIC_TAG),
-
-            Map.entry("underline", UNDERLINE_TAG),
-            Map.entry("n", UNDERLINE_TAG),
-
-            Map.entry("strikethrough", STRIKETHROUGH_TAG),
-            Map.entry("m", STRIKETHROUGH_TAG),
-
-            Map.entry("obfuscated", OBFUSCATED_TAG),
-            Map.entry("k", OBFUSCATED_TAG),
-
-            Map.entry("copyable", COPYABLE_TAG),
-            Map.entry("copy", COPYABLE_TAG)
-    );
 
     private interface Color {
     }
@@ -181,15 +149,10 @@ public class TextTools {
     private record Segment(String text, Style style) {
     }
 
-    public static MutableComponent deserialize(String s, String[] placeholders, String[] replacements) {
-        return deserialize(applyPlaceholders(s, placeholders, replacements, false));
-    }
+    private static MutableComponent deserialize(String s, String[] placeholders, String[] replacements, String[] literalPlaceholders, String[] literalReplacements) {
+        s = applyPlaceholders(s, placeholders, replacements, false);
+        s = applyPlaceholders(s, literalPlaceholders, literalReplacements, true);
 
-    public static MutableComponent deserialize(String s, String[] placeholders, String[] replacements, String[] literalPlaceholders, String[] literalReplacements) {
-        return deserialize(applyPlaceholders(s, literalPlaceholders, literalReplacements, true), placeholders, replacements);
-    }
-
-    public static MutableComponent deserialize(String s) {
         Deque<Style> stack = new ArrayDeque<>();
         StringBuilder buffer = new StringBuilder();
         List<Segment> segments = new ArrayList<>();
@@ -225,11 +188,7 @@ public class TextTools {
                 Style current = stack.peek();
 
                 //Handle tags
-                Integer predefinedColor = PREDEFINED_COLORS.get(tagString);
-                if (predefinedColor != null) {
-                    stack.push(Objects.requireNonNull(current).withColor(new SolidColor(predefinedColor)));
-
-                } else if ((tagString.startsWith("/") && stack.size() > 1)) {
+                if ((tagString.startsWith("/") && stack.size() > 1)) {
                     //Closing tags
                     //Limitation: currently closes the previous tag, no matter what the contents of the closing tag is
                     //Example: <bold>Bold</literally_anything> Not Bold
@@ -242,7 +201,7 @@ public class TextTools {
                     String tagName = hasColon ? tagString.substring(0, colonIndex) : tagString;
                     String tagArgs = hasColon ? tagString.substring(colonIndex + 1) : "";
 
-                    Tag tag = TAGS.get(tagName);
+                    Tag tag = Definitions.TAGS.get(tagName);
                     if (tag != null) stack.push(tag.apply(tagArgs, current));
                 }
 
@@ -258,10 +217,6 @@ public class TextTools {
 
         flush(stack, buffer, segments);
         return render(segments.toArray(Segment[]::new));
-    }
-
-    public static TextToolsBuilder builder() {
-        return new TextToolsBuilder();
     }
 
     private static void flush(Deque<Style> stack, StringBuilder buffer, List<Segment> segments) {
@@ -318,7 +273,7 @@ public class TextTools {
             case SolidColor(int rgb) -> Component.literal(text).withColor(rgb);
             case Gradient(int[] rgb) -> generateGradient(text, rgb, startIndex, totalLength);
             case null -> Component.literal(text);
-            default -> throw new IllegalStateException("Unexpected value: " + style.color);
+            default -> throw new IllegalStateException("Unexpected TextTools.Style: " + style.color);
         };
 
         output.withStyle(s -> {
@@ -398,5 +353,98 @@ public class TextTools {
         }
 
         return out;
+    }
+
+    private static final class Definitions {
+
+        //Minecraft default colors
+        private static final int BLACK = hexStringToInt("000000");
+        private static final int DARK_BLUE = hexStringToInt("0000AA");
+        private static final int DARK_GREEN = hexStringToInt("00AA00");
+        private static final int DARK_AQUA = hexStringToInt("00AAAA");
+        private static final int DARK_RED = hexStringToInt("AA0000");
+        private static final int DARK_PURPLE = hexStringToInt("AA00AA");
+        private static final int GOLD = hexStringToInt("FFAA00");
+        private static final int GRAY = hexStringToInt("AAAAAA");
+        private static final int DARK_GRAY = hexStringToInt("555555");
+        private static final int BLUE = hexStringToInt("5555FF");
+        private static final int GREEN = hexStringToInt("55FF55");
+        private static final int AQUA = hexStringToInt("55FFFF");
+        private static final int RED = hexStringToInt("FF5555");
+        private static final int LIGHT_PURPLE = hexStringToInt("FF55FF");
+        private static final int YELLOW = hexStringToInt("FFFF55");
+        private static final int WHITE = hexStringToInt("FFFFFF");
+
+        private static final Tag COLOR_TAG = (argument, current) -> {
+            int color = hexStringToInt(argument);
+            return current.withColor(new SolidColor(color));
+        };
+
+        private static final Tag LERP_TAG = (argument, current) -> {
+            //First two values are colors (hence limit of 2 for color array); third is float for linear interpolation
+            String[] split = argument.split(":");
+            int[] colors = Arrays.stream(split).limit(2).mapToInt(TextTools::hexStringToInt).toArray();
+            float lerpAmount = Float.parseFloat(split[2]);
+            int color = lerp(colors[0], colors[1], lerpAmount);
+            return current.withColor(new SolidColor(color));
+        };
+
+        private static final Tag GRADIENT_TAG = (argument, current) -> {
+            int[] colors = Arrays.stream(argument.split(":")).mapToInt(TextTools::hexStringToInt).toArray();
+            return current.withColor(new Gradient(colors));
+        };
+
+        private static final Tag BOLD_TAG = (_, current) -> current.withBold(true);
+        private static final Tag ITALIC_TAG = (_, current) -> current.withItalic(true);
+        private static final Tag UNDERLINE_TAG = (_, current) -> current.withUnderline(true);
+        private static final Tag STRIKETHROUGH_TAG = (_, current) -> current.withStrikethrough(true);
+        private static final Tag OBFUSCATED_TAG = (_, current) -> current.withObfuscated(true);
+        private static final Tag COPYABLE_TAG = (_, current) -> current.withCopyable(true);
+
+        private static final Tag BLACK_TAG = (_, current) -> current.withColor(new SolidColor(BLACK));
+        private static final Tag DARK_BLUE_TAG = (_, current) -> current.withColor(new SolidColor(DARK_BLUE));
+        private static final Tag DARK_GREEN_TAG = (_, current) -> current.withColor(new SolidColor(DARK_GREEN));
+        private static final Tag DARK_AQUA_TAG = (_, current) -> current.withColor(new SolidColor(DARK_AQUA));
+        private static final Tag DARK_RED_TAG = (_, current) -> current.withColor(new SolidColor(DARK_RED));
+        private static final Tag DARK_PURPLE_TAG = (_, current) -> current.withColor(new SolidColor(DARK_PURPLE));
+        private static final Tag GOLD_TAG = (_, current) -> current.withColor(new SolidColor(GOLD));
+        private static final Tag GRAY_TAG = (_, current) -> current.withColor(new SolidColor(GRAY));
+        private static final Tag DARK_GRAY_TAG = (_, current) -> current.withColor(new SolidColor(DARK_GRAY));
+        private static final Tag BLUE_TAG = (_, current) -> current.withColor(new SolidColor(BLUE));
+        private static final Tag GREEN_TAG = (_, current) -> current.withColor(new SolidColor(GREEN));
+        private static final Tag AQUA_TAG = (_, current) -> current.withColor(new SolidColor(AQUA));
+        private static final Tag RED_TAG = (_, current) -> current.withColor(new SolidColor(RED));
+        private static final Tag LIGHT_PURPLE_TAG = (_, current) -> current.withColor(new SolidColor(LIGHT_PURPLE));
+        private static final Tag YELLOW_TAG = (_, current) -> current.withColor(new SolidColor(YELLOW));
+        private static final Tag WHITE_TAG = (_, current) -> current.withColor(new SolidColor(WHITE));
+
+        private static final Map<String, Tag> TAGS = Map.ofEntries(
+                Map.entry("color", COLOR_TAG),
+                Map.entry("lerp", LERP_TAG),
+                Map.entry("gradient", GRADIENT_TAG),
+                Map.entry("bold", BOLD_TAG), Map.entry("l", BOLD_TAG),
+                Map.entry("italic", ITALIC_TAG), Map.entry("o", ITALIC_TAG),
+                Map.entry("underline", UNDERLINE_TAG), Map.entry("n", UNDERLINE_TAG),
+                Map.entry("strikethrough", STRIKETHROUGH_TAG), Map.entry("m", STRIKETHROUGH_TAG),
+                Map.entry("obfuscated", OBFUSCATED_TAG), Map.entry("k", OBFUSCATED_TAG),
+                Map.entry("copyable", COPYABLE_TAG), Map.entry("copy", COPYABLE_TAG),
+
+                Map.entry("black", BLACK_TAG), Map.entry("0", BLACK_TAG),
+                Map.entry("dark_blue", DARK_BLUE_TAG), Map.entry("1", DARK_BLUE_TAG),
+                Map.entry("dark_green", DARK_GREEN_TAG), Map.entry("2", DARK_GREEN_TAG),
+                Map.entry("dark_aqua", DARK_AQUA_TAG), Map.entry("3", DARK_AQUA_TAG),
+                Map.entry("dark_red", DARK_RED_TAG), Map.entry("4", DARK_RED_TAG),
+                Map.entry("dark_purple", DARK_PURPLE_TAG), Map.entry("5", DARK_PURPLE_TAG),
+                Map.entry("gold", GOLD_TAG), Map.entry("6", GOLD_TAG),
+                Map.entry("gray", GRAY_TAG), Map.entry("7", GRAY_TAG),
+                Map.entry("dark_gray", DARK_GRAY_TAG), Map.entry("8", DARK_GRAY_TAG),
+                Map.entry("blue", BLUE_TAG), Map.entry("9", BLUE_TAG),
+                Map.entry("green", GREEN_TAG), Map.entry("a", GREEN_TAG),
+                Map.entry("aqua", AQUA_TAG), Map.entry("b", AQUA_TAG),
+                Map.entry("red", RED_TAG), Map.entry("c", RED_TAG),
+                Map.entry("light_purple", LIGHT_PURPLE_TAG), Map.entry("d", LIGHT_PURPLE_TAG),
+                Map.entry("yellow", YELLOW_TAG), Map.entry("e", YELLOW_TAG),
+                Map.entry("white", WHITE_TAG), Map.entry("f", WHITE_TAG)
+        );
     }
 }

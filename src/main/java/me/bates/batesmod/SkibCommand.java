@@ -15,7 +15,7 @@ public class SkibCommand {
 
     private static int output(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
-        source.sendSuccess(() -> TextTools.deserialize("<gradient:ffff00:ff0000>Skibidi Rizz from Ohio!</gradient>"), false);
+        source.sendSuccess(() -> TextTools.builder().input("<gradient:ffff00:ff0000>Skibidi Rizz from Ohio!</gradient>").build(), false);
         return 1;
     }
 }
