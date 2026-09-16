@@ -8,9 +8,12 @@ import java.util.*;
 
 /**
  * {@code TextTools} is a utility class for deserializing
- * input markup code into a formatted {@link MutableComponent}, using the {@code deserialize} method.
+ * input markup code into a formatted {@link MutableComponent}.
  * Similar to MiniMessage formatting, this class accepts input in the form of tags such as
  * {@code <bold>text</bold>} and {@code <color:#abcdef>text</color>}.
+ *
+ * <p>Closing tags currently close the most recently opened tag, regardless of the closing tag's name.
+ * For example, {@code <bold>hello</literally_anything>world} is rendered {@code hello} in bold and {@code world} normally.
  *
  * <p>The builder is exposed through the {@link TextTools#builder()} method.
  *
@@ -49,10 +52,7 @@ public class TextTools {
     }
 
     /**
-     * The {@code TextTools.Builder} class is a builder for {@link TextTools}.
-     * It provides a more readable and less error-prone way of
-     * using {@link TextTools}, helping to prevent common errors such as mismatches
-     * between the number of placeholders and the number of replacements.
+     * The {@code TextTools.Builder} class is the builder for {@link TextTools}.
      */
     private static final class Builder implements InputRequired, InputReceived {
 
@@ -190,8 +190,6 @@ public class TextTools {
                 //Handle tags
                 if ((tagString.startsWith("/") && stack.size() > 1)) {
                     //Closing tags
-                    //Limitation: currently closes the previous tag, no matter what the contents of the closing tag is
-                    //Example: <bold>Bold</literally_anything> Not Bold
                     stack.pop();
 
                 } else {
@@ -330,7 +328,7 @@ public class TextTools {
     }
 
     private static int hexStringToInt(String s) {
-        if (s.contains("#")) {
+        if (s.startsWith("#")) {
             s = s.substring(1);
         }
         return Integer.parseInt(s, HEX_RADIX);
@@ -358,22 +356,22 @@ public class TextTools {
     private static final class Definitions {
 
         //Minecraft default colors
-        private static final int BLACK = hexStringToInt("000000");
-        private static final int DARK_BLUE = hexStringToInt("0000AA");
-        private static final int DARK_GREEN = hexStringToInt("00AA00");
-        private static final int DARK_AQUA = hexStringToInt("00AAAA");
-        private static final int DARK_RED = hexStringToInt("AA0000");
-        private static final int DARK_PURPLE = hexStringToInt("AA00AA");
-        private static final int GOLD = hexStringToInt("FFAA00");
-        private static final int GRAY = hexStringToInt("AAAAAA");
-        private static final int DARK_GRAY = hexStringToInt("555555");
-        private static final int BLUE = hexStringToInt("5555FF");
-        private static final int GREEN = hexStringToInt("55FF55");
-        private static final int AQUA = hexStringToInt("55FFFF");
-        private static final int RED = hexStringToInt("FF5555");
-        private static final int LIGHT_PURPLE = hexStringToInt("FF55FF");
-        private static final int YELLOW = hexStringToInt("FFFF55");
-        private static final int WHITE = hexStringToInt("FFFFFF");
+        private static final int BLACK = 0x000000;
+        private static final int DARK_BLUE = 0x0000AA;
+        private static final int DARK_GREEN = 0x00AA00;
+        private static final int DARK_AQUA = 0x00AAAA;
+        private static final int DARK_RED = 0xAA0000;
+        private static final int DARK_PURPLE = 0xAA00AA;
+        private static final int GOLD = 0xFFAA00;
+        private static final int GRAY = 0xAAAAAA;
+        private static final int DARK_GRAY = 0x555555;
+        private static final int BLUE = 0x5555FF;
+        private static final int GREEN = 0x55FF55;
+        private static final int AQUA = 0x55FFFF;
+        private static final int RED = 0xFF5555;
+        private static final int LIGHT_PURPLE = 0xFF55FF;
+        private static final int YELLOW = 0xFFFF55;
+        private static final int WHITE = 0xFFFFFF;
 
         private static final Tag COLOR_TAG = (argument, current) -> {
             int color = hexStringToInt(argument);
