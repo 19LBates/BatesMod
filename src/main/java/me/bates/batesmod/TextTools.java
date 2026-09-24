@@ -1,10 +1,9 @@
 package me.bates.batesmod;
 
-import net.minecraft.network.chat.ClickEvent;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.*;
 
 import java.util.*;
+import java.util.function.UnaryOperator;
 
 /**
  * {@code TextTools} is a utility class for deserializing
@@ -103,61 +102,33 @@ public class TextTools {
 
     @FunctionalInterface
     private interface Tag {
-        Style apply(String argument, Style current);
+        FormattingState apply(String argument, FormattingState current);
     }
 
-    private interface Color {
+    private record Gradient(int[] rgb) {
     }
 
-    private record SolidColor(int rgb) implements Color {
-    }
-
-    private record Gradient(int[] rgb) implements Color {
-    }
-
-    private record Style(boolean bold, boolean italic, boolean underline, boolean strikethrough, boolean obfuscated,
-                         boolean copyable, Color color) {
-        public Style withBold(boolean v) {
-            return new Style(v, italic, underline, strikethrough, obfuscated, copyable, color);
+    private record FormattingState(Style style, Gradient gradient) {
+        public FormattingState changeStyle(UnaryOperator<Style> change) {
+            return new FormattingState(change.apply(style), gradient);
         }
-
-        public Style withItalic(boolean v) {
-            return new Style(bold, v, underline, strikethrough, obfuscated, copyable, color);
-        }
-
-        public Style withUnderline(boolean v) {
-            return new Style(bold, italic, v, strikethrough, obfuscated, copyable, color);
-        }
-
-        public Style withStrikethrough(boolean v) {
-            return new Style(bold, italic, underline, v, obfuscated, copyable, color);
-        }
-
-        public Style withObfuscated(boolean v) {
-            return new Style(bold, italic, underline, strikethrough, v, copyable, color);
-        }
-
-        public Style withCopyable(boolean v) {
-            return new Style(bold, italic, underline, strikethrough, obfuscated, v, color);
-        }
-
-        public Style withColor(Color c) {
-            return new Style(bold, italic, underline, strikethrough, obfuscated, copyable, c);
+        public FormattingState withGradient(Gradient gradient) {
+            return new FormattingState(style, gradient);
         }
     }
 
-    private record Segment(String text, Style style) {
+    private record Segment(String text, FormattingState formattingState) {
     }
 
     private static MutableComponent deserialize(String s, String[] placeholders, String[] replacements, String[] literalPlaceholders, String[] literalReplacements) {
         s = applyPlaceholders(s, placeholders, replacements, false);
         s = applyPlaceholders(s, literalPlaceholders, literalReplacements, true);
 
-        Deque<Style> stack = new ArrayDeque<>();
+        Deque<FormattingState> stack = new ArrayDeque<>();
         StringBuilder buffer = new StringBuilder();
         List<Segment> segments = new ArrayList<>();
 
-        stack.push(new Style(false, false, false, false, false, false, null));
+        stack.push(new FormattingState(Style.EMPTY, null));
 
         for (int i = 0; i < s.length(); ) {
             char c = s.charAt(i);
@@ -173,23 +144,15 @@ public class TextTools {
             if (c == '<') {
                 flush(stack, buffer, segments);
 
-                //Start searching for '>' after '<'
-                int end = -1;
-                for (int j = i + 1; j < s.length(); j++) {
-                    if (s.charAt(j) == '>') {
-                        end = j;
-                        break;
-                    }
-                }
+                int end = findTagEnd(s, i);
                 if (end == -1) break;
 
                 String tagString = s.substring(i + 1, end);
 
-                Style current = stack.peek();
+                FormattingState current = stack.peek();
 
                 //Handle tags
                 if ((tagString.startsWith("/") && stack.size() > 1)) {
-                    //Closing tags
                     stack.pop();
 
                 } else {
@@ -202,7 +165,6 @@ public class TextTools {
                     Tag tag = Definitions.TAGS.get(tagName);
                     if (tag != null) stack.push(tag.apply(tagArgs, current));
                 }
-
 
                 //Continue after the end of the tag
                 i = end + 1;
@@ -217,11 +179,36 @@ public class TextTools {
         return render(segments.toArray(Segment[]::new));
     }
 
-    private static void flush(Deque<Style> stack, StringBuilder buffer, List<Segment> segments) {
+    private static int findTagEnd(String s, int start) {
+        int nestLevel = 1;
+
+        for (int i = start + 1; i < s.length(); i++) {
+            switch (s.charAt(i)) {
+                case '\\':
+                    i++;
+                    continue;
+                case '<':
+                    nestLevel++;
+                    break;
+                case '>':
+                    nestLevel--;
+                    break;
+            }
+
+            if (nestLevel == 0) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private static void flush(Deque<FormattingState> stack, StringBuilder buffer, List<Segment> segments) {
+        if (buffer.isEmpty()) return;
         String text = buffer.toString();
         buffer.setLength(0);
-        Style style = stack.peek();
-        segments.add(new Segment(text, style));
+        FormattingState formattingState = stack.peek();
+        segments.add(new Segment(text, formattingState));
     }
 
     private static MutableComponent render(Segment[] segments) {
@@ -229,14 +216,14 @@ public class TextTools {
         for (int i = 0; i < segments.length; i++) {
             Segment segment = segments[i];
 
-            if (segment.style.color instanceof Gradient gradient) {
+            if (segment.formattingState.gradient instanceof Gradient gradient) {
                 //Keep going until a segment is found without the same gradient, or until end is reached
                 int firstSegmentIndex = i;
                 int totalLength = segment.text.length();
 
                 while (i + 1 < segments.length) {
                     Segment next = segments[i + 1];
-                    if (next.style.color != gradient) break;
+                    if (next.formattingState.gradient != gradient) break;
                     totalLength += next.text.length();
                     i++;
                 }
@@ -264,25 +251,15 @@ public class TextTools {
 
     private static MutableComponent renderSegment(Segment segment, int startIndex, int totalLength) {
         String text = segment.text;
-        Style style = segment.style;
+        FormattingState formattingState = segment.formattingState;
         MutableComponent output;
 
-        output = switch (style.color) {
-            case SolidColor(int rgb) -> Component.literal(text).withColor(rgb);
+        output = switch (formattingState.gradient) {
             case Gradient(int[] rgb) -> generateGradient(text, rgb, startIndex, totalLength);
             case null -> Component.literal(text);
-            default -> throw new IllegalStateException("Unexpected TextTools.Style: " + style.color);
         };
 
-        output.withStyle(s -> {
-            if (style.bold) s = s.withBold(true);
-            if (style.italic) s = s.withItalic(true);
-            if (style.underline) s = s.withUnderlined(true);
-            if (style.strikethrough) s = s.withStrikethrough(true);
-            if (style.obfuscated) s = s.withObfuscated(true);
-            if (style.copyable) s = s.withClickEvent(new ClickEvent.CopyToClipboard(text));
-            return s;
-        });
+        output.withStyle(formattingState.style);
 
         return output;
     }
@@ -331,10 +308,13 @@ public class TextTools {
         if (s.startsWith("#")) {
             s = s.substring(1);
         }
-        return Integer.parseInt(s, HEX_RADIX);
+        return Integer.parseUnsignedInt(s, HEX_RADIX);
     }
 
     private static String applyPlaceholders(String s, String[] placeholders, String[] replacements, boolean literal) {
+
+        if (placeholders == null || placeholders.length == 0 || replacements == null || replacements.length == 0) return s;
+
         String out = s;
 
         if (placeholders.length != replacements.length) {
@@ -375,57 +355,80 @@ public class TextTools {
 
         private static final Tag COLOR_TAG = (argument, current) -> {
             int color = hexStringToInt(argument);
-            return current.withColor(new SolidColor(color));
+            return current.changeStyle(s -> s.withColor(color)).withGradient(null);
         };
 
         private static final Tag LERP_TAG = (argument, current) -> {
             //First two values are colors (hence limit of 2 for color array); third is float for linear interpolation
             String[] split = argument.split(":");
-            int[] colors = Arrays.stream(split).limit(2).mapToInt(TextTools::hexStringToInt).toArray();
+
+            if (split.length != 3) {
+                throw new IllegalArgumentException("Invalid arguments for lerp: \" " + argument + "\". Lerp requires 3 arguments: <lerp:color1:color2:amount>.");
+            }
+
+            int color1 = hexStringToInt(split[0]);
+            int color2 = hexStringToInt(split[1]);
             float lerpAmount = Float.parseFloat(split[2]);
-            int color = lerp(colors[0], colors[1], lerpAmount);
-            return current.withColor(new SolidColor(color));
+
+            int colorResult = lerp(color1, color2, lerpAmount);
+            return current.changeStyle(s -> s.withColor(colorResult)).withGradient(null);
         };
 
         private static final Tag GRADIENT_TAG = (argument, current) -> {
             int[] colors = Arrays.stream(argument.split(":")).mapToInt(TextTools::hexStringToInt).toArray();
-            return current.withColor(new Gradient(colors));
+            return current.withGradient(new Gradient(colors));
         };
 
-        private static final Tag BOLD_TAG = (_, current) -> current.withBold(true);
-        private static final Tag ITALIC_TAG = (_, current) -> current.withItalic(true);
-        private static final Tag UNDERLINE_TAG = (_, current) -> current.withUnderline(true);
-        private static final Tag STRIKETHROUGH_TAG = (_, current) -> current.withStrikethrough(true);
-        private static final Tag OBFUSCATED_TAG = (_, current) -> current.withObfuscated(true);
-        private static final Tag COPYABLE_TAG = (_, current) -> current.withCopyable(true);
+        private static final Tag SHADOW_COLOR_TAG = (argument, current) -> {
+            int color = hexStringToInt(argument);
+            return current.changeStyle(s -> s.withShadowColor(color));
+        };
 
-        private static final Tag BLACK_TAG = (_, current) -> current.withColor(new SolidColor(BLACK));
-        private static final Tag DARK_BLUE_TAG = (_, current) -> current.withColor(new SolidColor(DARK_BLUE));
-        private static final Tag DARK_GREEN_TAG = (_, current) -> current.withColor(new SolidColor(DARK_GREEN));
-        private static final Tag DARK_AQUA_TAG = (_, current) -> current.withColor(new SolidColor(DARK_AQUA));
-        private static final Tag DARK_RED_TAG = (_, current) -> current.withColor(new SolidColor(DARK_RED));
-        private static final Tag DARK_PURPLE_TAG = (_, current) -> current.withColor(new SolidColor(DARK_PURPLE));
-        private static final Tag GOLD_TAG = (_, current) -> current.withColor(new SolidColor(GOLD));
-        private static final Tag GRAY_TAG = (_, current) -> current.withColor(new SolidColor(GRAY));
-        private static final Tag DARK_GRAY_TAG = (_, current) -> current.withColor(new SolidColor(DARK_GRAY));
-        private static final Tag BLUE_TAG = (_, current) -> current.withColor(new SolidColor(BLUE));
-        private static final Tag GREEN_TAG = (_, current) -> current.withColor(new SolidColor(GREEN));
-        private static final Tag AQUA_TAG = (_, current) -> current.withColor(new SolidColor(AQUA));
-        private static final Tag RED_TAG = (_, current) -> current.withColor(new SolidColor(RED));
-        private static final Tag LIGHT_PURPLE_TAG = (_, current) -> current.withColor(new SolidColor(LIGHT_PURPLE));
-        private static final Tag YELLOW_TAG = (_, current) -> current.withColor(new SolidColor(YELLOW));
-        private static final Tag WHITE_TAG = (_, current) -> current.withColor(new SolidColor(WHITE));
+        private static final Tag BOLD_TAG = (_, current) -> current.changeStyle(s -> s.withBold(true));
+        private static final Tag ITALIC_TAG = (_, current) -> current.changeStyle(s -> s.withItalic(true));
+        private static final Tag UNDERLINE_TAG = (_, current) -> current.changeStyle(s -> s.withUnderlined(true));
+        private static final Tag STRIKETHROUGH_TAG = (_, current) -> current.changeStyle(s -> s.withStrikethrough(true));
+        private static final Tag OBFUSCATED_TAG = (_, current) -> current.changeStyle(s -> s.withObfuscated(true));
+
+        private static final Tag COPYABLE_TAG = (argument, current) -> {
+            ClickEvent event = new ClickEvent.CopyToClipboard(deserialize(argument, null, null, null, null).getString());
+            return current.changeStyle(s -> s.withClickEvent(event));
+        };
+
+        private static final Tag HOVER_SHOW_TEXT_TAG = (argument, current) -> {
+            HoverEvent event = new HoverEvent.ShowText(deserialize(argument, null, null, null, null));
+            return current.changeStyle(s -> s.withHoverEvent(event));
+        };
+
+        private static final Tag BLACK_TAG = (_, current) -> current.changeStyle(s -> s.withColor(BLACK)).withGradient(null);
+        private static final Tag DARK_BLUE_TAG = (_, current) -> current.changeStyle(s -> s.withColor(DARK_BLUE)).withGradient(null);
+        private static final Tag DARK_GREEN_TAG = (_, current) -> current.changeStyle(s -> s.withColor(DARK_GREEN)).withGradient(null);
+        private static final Tag DARK_AQUA_TAG = (_, current) -> current.changeStyle(s -> s.withColor(DARK_AQUA)).withGradient(null);
+        private static final Tag DARK_RED_TAG = (_, current) -> current.changeStyle(s -> s.withColor(DARK_RED)).withGradient(null);
+        private static final Tag DARK_PURPLE_TAG = (_, current) -> current.changeStyle(s -> s.withColor(DARK_PURPLE)).withGradient(null);
+        private static final Tag GOLD_TAG = (_, current) -> current.changeStyle(s -> s.withColor(GOLD)).withGradient(null);
+        private static final Tag GRAY_TAG = (_, current) -> current.changeStyle(s -> s.withColor(GRAY)).withGradient(null);
+        private static final Tag DARK_GRAY_TAG = (_, current) -> current.changeStyle(s -> s.withColor(DARK_GRAY)).withGradient(null);
+        private static final Tag BLUE_TAG = (_, current) -> current.changeStyle(s -> s.withColor(BLUE)).withGradient(null);
+        private static final Tag GREEN_TAG = (_, current) -> current.changeStyle(s -> s.withColor(GREEN)).withGradient(null);
+        private static final Tag AQUA_TAG = (_, current) -> current.changeStyle(s -> s.withColor(AQUA)).withGradient(null);
+        private static final Tag RED_TAG = (_, current) -> current.changeStyle(s -> s.withColor(RED)).withGradient(null);
+        private static final Tag LIGHT_PURPLE_TAG = (_, current) -> current.changeStyle(s -> s.withColor(LIGHT_PURPLE)).withGradient(null);
+        private static final Tag YELLOW_TAG = (_, current) -> current.changeStyle(s -> s.withColor(YELLOW)).withGradient(null);
+        private static final Tag WHITE_TAG = (_, current) -> current.changeStyle(s -> s.withColor(WHITE)).withGradient(null);
 
         private static final Map<String, Tag> TAGS = Map.ofEntries(
                 Map.entry("color", COLOR_TAG),
                 Map.entry("lerp", LERP_TAG),
                 Map.entry("gradient", GRADIENT_TAG),
+                Map.entry("shadow", SHADOW_COLOR_TAG),
                 Map.entry("bold", BOLD_TAG), Map.entry("l", BOLD_TAG),
                 Map.entry("italic", ITALIC_TAG), Map.entry("o", ITALIC_TAG),
                 Map.entry("underline", UNDERLINE_TAG), Map.entry("n", UNDERLINE_TAG),
                 Map.entry("strikethrough", STRIKETHROUGH_TAG), Map.entry("m", STRIKETHROUGH_TAG),
                 Map.entry("obfuscated", OBFUSCATED_TAG), Map.entry("k", OBFUSCATED_TAG),
                 Map.entry("copyable", COPYABLE_TAG), Map.entry("copy", COPYABLE_TAG),
+                Map.entry("hover_text", HOVER_SHOW_TEXT_TAG), Map.entry("hover", HOVER_SHOW_TEXT_TAG),
 
                 Map.entry("black", BLACK_TAG), Map.entry("0", BLACK_TAG),
                 Map.entry("dark_blue", DARK_BLUE_TAG), Map.entry("1", DARK_BLUE_TAG),
